@@ -1,14 +1,14 @@
 "use client";
 
 import Link from 'next/link';
+import { ButtonHTMLAttributes, ReactNode } from 'react';
 
-interface ButtonProps {
-  children: React.ReactNode;
+interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+  children: ReactNode;
   variant?: "primary" | "secondary" | "accent" | "outline";
   size?: "sm" | "md" | "lg";
   className?: string;
   href?: string;
-  [key: string]: any;
 }
 
 export function Button({ 
