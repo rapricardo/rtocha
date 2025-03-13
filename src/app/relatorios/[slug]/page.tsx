@@ -5,6 +5,7 @@ import { client } from '@/lib/sanity/client'
 import { getReportBySlug } from '@/lib/sanity/queries'
 import { Button } from '@/components/Button'
 import { SectionTitle } from '@/components/SectionTitle'
+import { PortableTextBlock } from '@/lib/types'
 
 // Defina os tipos necessários
 type RecommendedService = {
@@ -25,7 +26,7 @@ type Report = {
   reportId: string
   reportTitle: string
   summary: string
-  contextAnalysis: any[]
+  contextAnalysis: PortableTextBlock[]
   createdAt: string
   views: number
   lead: {
@@ -134,7 +135,7 @@ export async function generateMetadata({ params }: { params: { slug: string } })
       title: `${report.reportTitle} | Ricardo Tocha`,
       description: report.summary.slice(0, 160),
     }
-  } catch (error) {
+  } catch {
     return {
       title: `Mini-Auditoria de Automação | Ricardo Tocha`,
       description: 'Análise personalizada para identificar oportunidades de automação em processos de marketing e vendas.',
@@ -260,17 +261,17 @@ export default async function ReportPage({ params }: { params: { slug: string } 
               subtitle="Soluções personalizadas para seu contexto específico"
             />
 
-            <div className="grid grid-cols-1 gap-8 mt-8">
-              {report.recommendedServices.map((rec) => {
-                const priorityColors = {
+            <div className="space-y-8 mt-8">
+              {report.recommendedServices.map(rec => {
+                const priorityColors: Record<number, string> = {
                   1: "border-red-500 bg-red-50",
                   2: "border-orange-500 bg-orange-50",
-                  3: "border-blue-500 bg-blue-50",
+                  3: "border-blue-500 bg-blue-50"
                 };
                 
-                const priorityLabels = {
-                  1: "Alta Prioridade",
-                  2: "Média Prioridade", 
+                const priorityLabels: Record<number, string> = {
+                  1: "Prioridade Alta",
+                  2: "Prioridade Média",
                   3: "Prioridade Regular"
                 };
 

@@ -1,8 +1,9 @@
 import { sanityClient } from './client';
-import { v4 as uuidv4 } from 'uuid';
+// import { v4 as uuidv4 } from 'uuid'; // Comentando importação não utilizada
+import { LeadData, ReportData } from '@/lib/types';
 
 // Criar um novo lead
-export async function createLead(leadData: any) {
+export async function createLead(leadData: LeadData) {
   try {
     console.log('📝 Criando lead com dados:', leadData);
     const result = await sanityClient.create({
@@ -21,7 +22,7 @@ export async function createLead(leadData: any) {
 }
 
 // Atualizar um lead existente
-export async function updateLead(leadId: string, data: any) {
+export async function updateLead(leadId: string, data: Partial<LeadData>) {
   try {
     console.log(`📝 Atualizando lead ${leadId} com dados:`, data);
     const result = await sanityClient
@@ -41,7 +42,7 @@ export async function updateLead(leadId: string, data: any) {
 }
 
 // Criar um novo relatório
-export async function createReport(reportData: any) {
+export async function createReport(reportData: ReportData) {
   try {
     console.log('📝 Criando relatório com dados:', reportData);
     // Gerar um slug baseado no reportId
@@ -70,7 +71,7 @@ export async function createReport(reportData: any) {
 }
 
 // Atualizar um relatório existente
-export async function updateReport(reportId: string, data: any) {
+export async function updateReport(reportId: string, data: Partial<ReportData>) {
   try {
     console.log(`📝 Atualizando relatório ${reportId} com dados:`, data);
     const result = await sanityClient
@@ -112,9 +113,9 @@ export async function registerReportCTAClick(reportId: string) {
       .patch(reportId)
       .set({ 
         callToActionClicked: true,
-        views: sanityClient.patch.inc(1),
         lastViewedAt: new Date().toISOString()
       })
+      .inc({views: 1})
       .commit();
       
     console.log('✅ Clique no CTA registrado com sucesso');

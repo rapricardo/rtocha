@@ -5,10 +5,10 @@ import { generateReportId } from '@/lib/utils/reportGenerator';
 export async function POST(request: NextRequest) {
   try {
     console.log('📝 API /request-report: Processando solicitação...');
-    const { email, leadId } = await request.json();
+    const { email: userEmail, leadId } = await request.json();
     
     // Validação básica
-    if (!email || !leadId) {
+    if (!userEmail || !leadId) {
       console.log('❌ Validação falhou: email ou leadId ausente');
       return NextResponse.json(
         { error: 'Email e leadId são obrigatórios' },
@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
       console.log('⚠️ Detectado ID simulado. Usando modo de simulação.');
       
       // Simular a solicitação do relatório
-      console.log('📝 Simulando solicitação de relatório para o email:', email);
+      console.log('📝 Simulando solicitação de relatório para o email:', userEmail);
       
       // Gerar um ID de relatório simulado 
       const simulatedReportId = generateReportId();
@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
     
     // Iniciar geração do relatório e obter a URL
     console.log('📝 Iniciando geração do relatório e obtendo URL');
-    const reportData = await generateReportForLead(leadId, email);
+    const reportData = await generateReportForLead(leadId);
     
     console.log('✅ Solicitação de relatório processada com sucesso');
     return NextResponse.json({ 
@@ -93,11 +93,13 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// Função para gerar o relatório e retornar dados, incluindo URL
-async function generateReportForLead(leadId: string, email: string) {
+// Função para gerar o relatório para um lead
+async function generateReportForLead(leadId: string) {
   try {
+    console.log(`📝 Gerando relatório para lead ${leadId}`);
+    
     // Chamar a API de geração de relatório
-    const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3001'}/api/audit-quiz/generate-report`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/audit-quiz/generate-report`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -105,27 +107,16 @@ async function generateReportForLead(leadId: string, email: string) {
       body: JSON.stringify({ leadId }),
     });
     
-    const data = await response.json();
-    
     if (!response.ok) {
-      throw new Error(data.error || 'Erro ao gerar relatório');
+      throw new Error(`Erro ao gerar relatório: ${response.statusText}`);
     }
     
-    console.log(`✅ Relatório gerado com sucesso: ${data.reportUrl}`);
+    const data = await response.json();
+    console.log('✅ Relatório gerado com sucesso:', data);
     
-    return {
-      reportId: data.reportId,
-      reportUrl: data.reportUrl
-    };
+    return data;
   } catch (error) {
     console.error('❌ Erro ao gerar relatório:', error);
-    
-    // Em caso de erro, gerar um ID simulado para fornecer alguma experiência ao usuário
-    const fallbackReportId = generateReportId();
-    
-    return {
-      reportId: fallbackReportId,
-      reportUrl: `/relatorios/${fallbackReportId}`
-    };
+    throw error;
   }
 }

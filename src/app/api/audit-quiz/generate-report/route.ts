@@ -3,6 +3,7 @@ import { sanityClient } from '@/lib/sanity/client';
 import { generatePersonalizedRecommendations, generateContextAnalysis } from '@/lib/ai/gemini';
 import { createReport, updateLead } from '@/lib/sanity/mutations';
 import { generateReportId } from '@/lib/utils/reportGenerator';
+import { ServiceData, Recommendation } from '@/lib/types';
 
 export async function POST(request: NextRequest) {
   try {
@@ -55,10 +56,10 @@ export async function POST(request: NextRequest) {
     // 5. Mapear os nomes dos serviços para IDs e referências
     console.log('📝 Estruturando dados para o relatório');
     const serviceMap = Object.fromEntries(
-      services.map((service: any) => [service.name, service._id])
+      services.map((service: ServiceData) => [service.name, service._id])
     );
     
-    const recommendedServices = recommendations.recommendations.map((rec: any, index: number) => {
+    const recommendedServices = recommendations.recommendations.map((rec: Recommendation, index: number) => {
       // Encontrar o ID do serviço pelo nome
       const serviceId = serviceMap[rec.serviceName];
       

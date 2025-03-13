@@ -1,6 +1,7 @@
 "use client";
 
 import React from 'react';
+import { QuizAnswerValue } from '@/lib/types';
 
 interface Option {
   value: string;
@@ -18,8 +19,8 @@ interface QuestionProps {
 
 interface QuizQuestionProps {
   question: QuestionProps;
-  value: any;
-  onChange: (value: any) => void;
+  value: QuizAnswerValue;
+  onChange: (value: QuizAnswerValue) => void;
   onNext: () => void;
   onPrevious: () => void;
   error: string | null;
@@ -70,7 +71,7 @@ export default function QuizQuestion({
         ) : (
           <input
             type={question.type}
-            value={value || ''}
+            value={typeof value === 'string' ? value : ''}
             onChange={(e) => onChange(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={question.placeholder}

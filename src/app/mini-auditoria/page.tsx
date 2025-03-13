@@ -18,7 +18,7 @@ export default function MiniAuditoriaPage() {
         </p>
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 inline-block mx-auto">
           <p className="text-blue-700 text-sm">
-            Responda 9 perguntas rápidas e receba uma análise personalizada com recomendações
+            Responda 13 perguntas rápidas e receba uma análise personalizada com recomendações
           </p>
         </div>
       </div>

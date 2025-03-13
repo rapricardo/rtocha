@@ -4,6 +4,7 @@ import { useState } from 'react';
 import QuizProgress from './QuizProgress';
 import QuizQuestion from './QuizQuestion';
 import QuizComplete from './QuizComplete';
+import { QuizPreview, QuizAnswerValue } from '@/lib/types';
 
 // Definição das perguntas do quiz
 const questions = [
@@ -144,16 +145,16 @@ const questions = [
 
 export default function AuditQuiz() {
   const [currentQuestion, setCurrentQuestion] = useState(0);
-  const [answers, setAnswers] = useState<Record<string, any>>({});
+  const [answers, setAnswers] = useState<Record<string, QuizAnswerValue>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [preview, setPreview] = useState<any>(null);
+  const [preview, setPreview] = useState<QuizPreview | null>(null);
 
   // Verificar se todas as perguntas foram respondidas
   const isComplete = currentQuestion >= questions.length;
 
   // Lidar com a resposta da pergunta atual
-  const handleAnswer = (questionId: string, answer: any) => {
+  const handleAnswer = (questionId: string, answer: QuizAnswerValue) => {
     setAnswers((prev) => ({
       ...prev,
       [questionId]: answer,
@@ -211,8 +212,9 @@ export default function AuditQuiz() {
       
       // Guardar preview para exibição
       setPreview(data.preview);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: Error | unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Ocorreu um erro ao enviar suas respostas';
+      setError(errorMessage);
       // Voltar para a última pergunta em caso de erro
       setCurrentQuestion(questions.length - 1);
     } finally {
@@ -248,8 +250,9 @@ export default function AuditQuiz() {
         reportRequested: true,
         reportUrl: data.reportUrl || `/relatorios/simulado-${Date.now()}`
       });
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: Error | unknown) {
+      const errorMessage = err instanceof Error ? err.message : 'Ocorreu um erro ao solicitar relatório completo';
+      setError(errorMessage);
     } finally {
       setIsSubmitting(false);
     }

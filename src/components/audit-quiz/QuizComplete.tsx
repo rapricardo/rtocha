@@ -2,9 +2,10 @@
 
 import React from 'react';
 import Link from 'next/link';
+import { QuizPreview } from '@/lib/types';
 
 interface QuizCompleteProps {
-  preview: any;
+  preview: QuizPreview | null;
   isLoading: boolean;
   onRequestFullReport: () => void;
   error: string | null;

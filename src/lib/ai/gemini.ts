@@ -1,4 +1,5 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { LeadData, ServiceData, RecommendationResult, ContextAnalysis } from "@/lib/types";
 
 // Inicializa a API do Google com a chave de API
 const genAI = new GoogleGenerativeAI(process.env.GOOGLE_AI_API_KEY || '');
@@ -17,7 +18,7 @@ const getModel = () => {
 };
 
 // Função para gerar recomendações personalizadas
-export async function generatePersonalizedRecommendations(leadData: any, services: any[]) {
+export async function generatePersonalizedRecommendations(leadData: LeadData, services: ServiceData[]): Promise<RecommendationResult> {
   try {
     const model = getModel();
     
@@ -87,19 +88,27 @@ export async function generatePersonalizedRecommendations(leadData: any, service
     
     // Processa a resposta - extrai e parse o JSON
     try {
-      // Tenta fazer o parse direto primeiro
-      return JSON.parse(text);
-    } catch (error) {
-      console.log("⚠️ Erro ao fazer parse direto, tentando extrair JSON do texto...");
-      
-      // Se falhar, tenta extrair o JSON de dentro do texto
-      const jsonRegex = /{[\s\S]*}/;
-      const match = text.match(jsonRegex);
-      
-      if (match) {
-        return JSON.parse(match[0]);
-      } else {
-        throw new Error("Não foi possível extrair JSON válido da resposta");
+      const jsonResponse = JSON.parse(text);
+      return jsonResponse;
+    } catch {
+      // Se falhar ao fazer o parse do JSON, tentar extrair o JSON da resposta
+      try {
+        const jsonMatch = text.match(/```json\n([\s\S]*?)\n```/);
+        if (jsonMatch && jsonMatch[1]) {
+          return JSON.parse(jsonMatch[1]);
+        }
+        
+        // Tentar encontrar qualquer bloco que pareça JSON
+        const possibleJson = text.match(/{[\s\S]*}/);
+        if (possibleJson) {
+          return JSON.parse(possibleJson[0]);
+        }
+        
+        throw new Error("Não foi possível extrair JSON da resposta");
+      } catch {
+        // Se ainda falhar, retornar um objeto vazio
+        console.error("❌ Falha ao processar resposta JSON do Gemini");
+        return { recommendations: [] };
       }
     }
   } catch (error) {
@@ -109,7 +118,7 @@ export async function generatePersonalizedRecommendations(leadData: any, service
 }
 
 // Função para gerar uma análise de contexto para o relatório
-export async function generateContextAnalysis(leadData: any) {
+export async function generateContextAnalysis(leadData: LeadData): Promise<ContextAnalysis> {
   try {
     const model = getModel();
     
@@ -167,23 +176,29 @@ export async function generateContextAnalysis(leadData: any) {
     const text = response.text();
     console.log("✅ Análise de contexto recebida do Gemini");
     
+    // Processa a resposta - extrai e parse o JSON
     try {
-      // Tentar fazer o parse do JSON diretamente
       const jsonResponse = JSON.parse(text);
       return jsonResponse;
-    } catch (error) {
-      // Se falhar, tentar extrair o JSON do texto
-      const jsonRegex = /{[\s\S]*}/;
-      const match = text.match(jsonRegex);
-      
-      if (match) {
-        return JSON.parse(match[0]);
-      } else {
-        // Se ainda falhar, retornar um objeto formatado com o texto bruto
-        return {
-          visaoGeral: "Análise personalizada para identificar oportunidades de automação em processos de marketing e vendas.",
-          analiseContexto: text
-        };
+    } catch {
+      // Se falhar ao fazer o parse do JSON, tentar extrair o JSON da resposta
+      try {
+        const jsonMatch = text.match(/```json\n([\s\S]*?)\n```/);
+        if (jsonMatch && jsonMatch[1]) {
+          return JSON.parse(jsonMatch[1]);
+        }
+        
+        // Tentar encontrar qualquer bloco que pareça JSON
+        const possibleJson = text.match(/{[\s\S]*}/);
+        if (possibleJson) {
+          return JSON.parse(possibleJson[0]);
+        }
+        
+        throw new Error("Não foi possível extrair JSON da resposta");
+      } catch {
+        // Se ainda falhar, retornar um objeto vazio
+        console.error("❌ Falha ao processar resposta JSON do Gemini");
+        return { visaoGeral: "", analiseContexto: "" };
       }
     }
   } catch (error) {

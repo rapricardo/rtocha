@@ -1,16 +1,32 @@
 import { sanityClient } from '../sanity/client';
+import { LeadData, ServiceData } from '@/lib/types';
+
+// Interface para o serviço recomendado
+interface RecommendedServicePreview {
+  name: string;
+  problem: string;
+  benefit: string;
+}
+
+// Interface para o serviço pontuado
+interface ScoredService {
+  serviceId: string;
+  name: string;
+  score: number;
+  priority: number;
+}
 
 // Função simplificada para gerar uma recomendação de serviço para o preview
 // Em um ambiente real, isso seria mais sofisticado e usaria os dados do Sanity
-export async function getRecommendedService(leadData: any) {
+export async function getRecommendedService(leadData: LeadData): Promise<RecommendedServicePreview> {
   // Lógica simplificada baseada nas respostas do usuário
-  const { mainChallenge, companySize, usesCRM, improvementGoal, usesAutomation, jobTitle } = leadData;
+  const { mainChallenge, usesCRM, improvementGoal, usesAutomation, jobTitle } = leadData;
   
   // Em um ambiente real, buscaria os serviços do Sanity e aplicaria um algoritmo
   // de matching mais sofisticado
   
   // Para demonstração, usamos uma lógica simples baseada nos desafios e objetivos
-  let recommendedService = {
+  let recommendedService: RecommendedServicePreview = {
     name: 'Assistente de Reuniões Integrado ao CRM',
     problem: 'Variação de performance entre vendedores e perda de informações importantes durante negociações.',
     benefit: 'Aumento da taxa de conversão em 15-30% e registro automático de informações no CRM.'
@@ -73,7 +89,7 @@ export async function getRecommendedService(leadData: any) {
 }
 
 // Versão mais sofisticada para a geração real do relatório via n8n
-export async function recommendServicesForLead(leadId: string) {
+export async function recommendServicesForLead(leadId: string): Promise<ScoredService[]> {
   // Buscar dados do lead
   const lead = await sanityClient.fetch(
     `*[_type == "lead" && _id == $leadId][0]{
@@ -109,7 +125,7 @@ export async function recommendServicesForLead(leadId: string) {
   );
   
   // Calcular score para cada serviço
-  const scoredServices = services.map((service: any) => {
+  const scoredServices = services.map((service: ServiceData) => {
     let score = 0;
     
     // Verificar match de tamanho da empresa
@@ -142,7 +158,7 @@ export async function recommendServicesForLead(leadId: string) {
     }
     
     // Ajustar com a prioridade base do serviço
-    score += service.priority * 0.5;
+    score += (service.priority || 0) * 0.5;
     
     return {
       serviceId: service._id,
@@ -155,6 +171,6 @@ export async function recommendServicesForLead(leadId: string) {
   
   // Ordenar por score e pegar os 3 melhores
   return scoredServices
-    .sort((a: any, b: any) => b.score - a.score)
+    .sort((a: ScoredService, b: ScoredService) => b.score - a.score)
     .slice(0, 3);
 }

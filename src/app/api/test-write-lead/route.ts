@@ -1,10 +1,11 @@
 import { NextResponse } from 'next/server';
 import { sanityClient } from '@/lib/sanity/client';
+import { LeadData } from '@/lib/types';
 
 export async function GET() {
   try {
     // Tenta criar um documento de lead de teste
-    const testLead = {
+    const testLead: LeadData & { _type: string } = {
       _type: 'lead',
       name: 'Usuário de Teste',
       email: 'teste@example.com',
@@ -24,14 +25,17 @@ export async function GET() {
       message: 'Lead de teste criado com sucesso!',
       leadId: result._id
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao criar lead de teste:', error);
+    
+    const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+    const errorResponse = (error as { response?: { body?: unknown } }).response?.body;
     
     return NextResponse.json({
       success: false,
       message: 'Erro ao criar lead de teste',
-      error: error.message,
-      details: error.response?.body || 'Sem detalhes adicionais',
+      error: errorMessage,
+      details: errorResponse || 'Sem detalhes adicionais',
       hasToken: !!process.env.SANITY_API_TOKEN
     }, { status: 500 });
   }

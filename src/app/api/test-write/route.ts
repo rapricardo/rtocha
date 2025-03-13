@@ -1,10 +1,16 @@
 import { NextResponse } from 'next/server';
 import { sanityClient } from '@/lib/sanity/client';
 
+interface TestDocument {
+  _type: string;
+  title: string;
+  description: string;
+}
+
 export async function GET() {
   try {
     // Tenta criar um documento de teste
-    const testDoc = {
+    const testDoc: TestDocument = {
       _type: 'test',
       title: 'Documento de teste',
       description: 'Criado em ' + new Date().toISOString()
@@ -17,14 +23,17 @@ export async function GET() {
       message: 'Documento criado com sucesso!',
       documentId: result._id
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro ao criar documento:', error);
+    
+    const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+    const errorResponse = (error as { response?: { body?: unknown } }).response?.body;
     
     return NextResponse.json({
       success: false,
       message: 'Erro ao criar documento',
-      error: error.message,
-      details: error.response?.body || 'Sem detalhes adicionais'
+      error: errorMessage,
+      details: errorResponse || 'Sem detalhes adicionais'
     }, { status: 500 });
   }
 }
