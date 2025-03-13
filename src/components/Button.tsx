@@ -9,6 +9,7 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   size?: "sm" | "md" | "lg";
   className?: string;
   href?: string;
+  target?: string;
 }
 
 export function Button({ 
@@ -17,6 +18,7 @@ export function Button({
   size = "md", 
   className = "",
   href,
+  target,
   ...props 
 }: ButtonProps) {
   const baseClasses = "font-medium rounded-2xl transition-colors duration-200 inline-flex items-center justify-center";
@@ -38,7 +40,7 @@ export function Button({
   
   if (href) {
     return (
-      <Link href={href} className={buttonClasses}>
+      <Link href={href} className={buttonClasses} target={target}>
         {children}
       </Link>
     );

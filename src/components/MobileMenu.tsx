@@ -59,15 +59,16 @@ export function MobileMenu() {
               Serviços
             </a>
             <a 
-              href="#contato" 
+              href="#cta-section" 
               className="py-2 text-gray-700 hover:text-[#d32b36]"
               onClick={() => setIsOpen(false)}
             >
               Contato
             </a>
             <Button 
-              href="#contato" 
+              href="https://wa.me/5519991924835?text=Tocha%2C%20me%20ajuda%20a%20vender%20mais" 
               className="w-full mt-2"
+              target="_blank"
               onClick={() => setIsOpen(false)}
             >
               Fale Comigo
