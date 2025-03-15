@@ -212,7 +212,7 @@ export default function AuditQuiz() {
       
       // Guardar preview para exibição
       setPreview(data.preview);
-    } catch (err: Error | unknown) {
+    } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Ocorreu um erro ao enviar suas respostas';
       setError(errorMessage);
       // Voltar para a última pergunta em caso de erro
@@ -222,11 +222,21 @@ export default function AuditQuiz() {
     }
   };
 
-  // Solicitar relatório completo
-  const requestFullReport = async () => {
+  // Solicitar relatório completo - atualizado para arquitetura assíncrona
+  const requestFullReport = async (): Promise<string | null> => {
+    console.log('[DEBUG] Iniciando requestFullReport');
+    console.log('[DEBUG] Estado atual do preview:', preview);
+    console.log('[DEBUG] Estado submitting (antes):', isSubmitting);
+    
     setIsSubmitting(true);
     
     try {
+      console.log('[DEBUG] Enviando requisição para /api/audit-quiz/request-report');
+      console.log('[DEBUG] Dados enviados:', {
+        email: answers.email,
+        leadId: preview?.leadId,
+      });
+      
       const response = await fetch('/api/audit-quiz/request-report', {
         method: 'POST',
         headers: {
@@ -238,22 +248,61 @@ export default function AuditQuiz() {
         }),
       });
       
+      console.log('[DEBUG] Resposta recebida, status:', response.status);
       const data = await response.json();
+      console.log('[DEBUG] Dados da resposta:', data);
       
       if (!response.ok) {
         throw new Error(data.error || 'Ocorreu um erro ao solicitar seu relatório');
       }
       
-      // Atualizar preview com informação do relatório solicitado e URL
-      setPreview({
-        ...preview,
-        reportRequested: true,
-        reportUrl: data.reportUrl || `/relatorios/simulado-${Date.now()}`
-      });
-    } catch (err: Error | unknown) {
+      // Verificar se já existe um relatório
+      if (data.reportExists) {
+        console.log('[DEBUG] Relatório existente encontrado:', data.reportUrl);
+        
+        // Atualizar o preview diretamente com a URL do relatório existente
+        setPreview((currentPreview) => {
+          if (!currentPreview) return null;
+          
+          return {
+            ...currentPreview,
+            reportRequested: true,
+            reportUrl: data.reportUrl
+          };
+        });
+        
+        return null; // Não precisamos de polling para relatório existente
+      }
+      
+      // Verificar se estamos em modo simulado (sem polling necessário)
+      if (data.simulatedMode) {
+        console.log('[DEBUG] Modo simulado, atualizando preview com URL:', data.reportUrl);
+        
+        // Atualizar o preview diretamente
+        setPreview((currentPreview) => {
+          if (!currentPreview) return null;
+          
+          return {
+            ...currentPreview,
+            reportRequested: true,
+            reportUrl: data.reportUrl
+          };
+        });
+        
+        return null; // Sem reportRequestId em modo simulado
+      }
+      
+      // Se não estamos em modo simulado ou com relatório existente, retornar o ID para polling
+      console.log('[DEBUG] Modo real, retornando requestId para polling:', data.reportRequestId);
+      return data.reportRequestId;
+      
+    } catch (err) {
+      console.error('[DEBUG] Erro durante a requisição:', err);
       const errorMessage = err instanceof Error ? err.message : 'Ocorreu um erro ao solicitar relatório completo';
       setError(errorMessage);
+      return null;
     } finally {
+      console.log('[DEBUG] Finalizando requisição, atualizando isSubmitting para false');
       setIsSubmitting(false);
     }
   };

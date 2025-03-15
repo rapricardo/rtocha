@@ -130,4 +130,5 @@ export interface QuizPreview {
   reportRequested: boolean;
   simulatedMode?: boolean;
   reportUrl?: string;
-} 
+  reportExists?: boolean; // Adicionado para indicar quando um relatório já existe
+}
