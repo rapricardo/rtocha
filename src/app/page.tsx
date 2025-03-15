@@ -3,6 +3,7 @@ import { Button } from "@/components/Button";
 import { ServiceCard } from "@/components/ServiceCard";
 import { SectionTitle } from "@/components/SectionTitle";
 import { MobileMenu } from "@/components/MobileMenu";
+import WelcomeBackWrapper from "@/components/personalization/WelcomeBackWrapper";
 
 // Ícones SVG para os serviços
 import LeadIcon from "@/components/icons/LeadIcon";
@@ -50,8 +51,13 @@ export default function Home() {
         </div>
       </header>
 
+      {/* Banner de boas-vindas para leads retornantes */}
+      <div className="container mx-auto px-4 pt-32">
+        <WelcomeBackWrapper />
+      </div>
+
       {/* Hero Section */}
-      <section className="pt-32 pb-20 bg-gradient-to-br from-white via-gray-50 to-gray-100">
+      <section className="pb-20 bg-gradient-to-br from-white via-gray-50 to-gray-100">
         <div className="container mx-auto px-4 grid grid-cols-1 md:grid-cols-2 gap-8 items-center relative">
           <div>
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6">

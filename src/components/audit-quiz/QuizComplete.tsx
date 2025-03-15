@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { QuizPreview } from '@/lib/types';
+import { storeLeadId } from '@/lib/hooks/useReturningLead';
 
 interface QuizCompleteProps {
   preview: QuizPreview | null;
@@ -35,6 +36,13 @@ export default function QuizComplete({
   console.log('[DEBUG QuizComplete] pollingActive:', pollingActive);
   console.log('[DEBUG QuizComplete] reportUrl:', reportUrl);
   console.log('[DEBUG QuizComplete] pollingAttempts:', pollingAttempts);
+
+  // Função para armazenar o ID do lead quando o relatório estiver pronto
+  const handleReportSuccess = (leadId: string) => {
+    if (leadId) {
+      storeLeadId(leadId);
+    }
+  };
 
   // Effect para iniciar o polling quando temos um requestId
   useEffect(() => {
@@ -86,6 +94,11 @@ export default function QuizComplete({
           if (preview) {
             preview.reportRequested = true;
             preview.reportUrl = data.reportUrl;
+            
+            // Armazenar o ID do lead quando o relatório é gerado com sucesso
+            if (preview.leadId) {
+              handleReportSuccess(preview.leadId);
+            }
           }
           
           return true; // Relatório pronto
@@ -99,7 +112,7 @@ export default function QuizComplete({
         // Verificar limite baseado na variável local
         if (attemptCount > 20) {
           console.log('[DEBUG QuizComplete] Número máximo de tentativas excedido');
-          setReportError('O relatório está demorando mais do que o esperado. Por favor, tente novamente mais tarde.');
+          setReportError('processing-timeout'); // Código especial para timeout de processamento
           setPollingActive(false);
           return true;
         }
@@ -158,6 +171,11 @@ export default function QuizComplete({
         // Atualizar o preview para mostrar que o relatório está pronto
         if (preview) {
           preview.reportRequested = true;
+        }
+        
+        // Armazenar o ID do lead quando um relatório existente é encontrado
+        if (preview?.leadId) {
+          storeLeadId(preview.leadId);
         }
       } else if (result) {
         // Se recebemos um requestId, precisamos iniciar polling
@@ -307,8 +325,35 @@ export default function QuizComplete({
         </div>
       )}
       
-      {/* Caso 3: Erro no relatório */}
-      {reportError && (
+      {/* Caso 3: Relatório demorando mais que o esperado (timeout) */}
+      {reportError === 'processing-timeout' && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+          <div className="flex items-start">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-blue-600" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <p className="text-sm font-medium text-blue-800">
+                Seu relatório está sendo elaborado com todos os detalhes
+              </p>
+              <p className="mt-1 text-xs text-blue-600">
+                Este processo pode levar um pouco mais de tempo para garantir uma análise completa e personalizada.
+              </p>
+              <button
+                onClick={() => handleRequestReport()}
+                className="mt-3 text-sm bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+              >
+                Veja se já está pronto
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Caso 4: Erro no relatório (que não seja timeout) */}
+      {reportError && reportError !== 'processing-timeout' && (
         <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
           <div className="flex items-start">
             <div className="flex-shrink-0">
@@ -331,7 +376,7 @@ export default function QuizComplete({
         </div>
       )}
       
-      {/* Caso 4: Botão para solicitar relatório (estado inicial) */}
+      {/* Caso 5: Botão para solicitar relatório (estado inicial) */}
       {!preview.reportRequested && !reportUrl && !pollingActive && !reportError && (
         <div className="text-center">
           <button
