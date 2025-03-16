@@ -6,6 +6,7 @@ import { getReportBySlug } from '@/lib/sanity/queries'
 import { Button } from '@/components/Button'
 import { SectionTitle } from '@/components/SectionTitle'
 import { PortableTextBlock } from '@/lib/types'
+import { portableTextComponents } from '@/lib/portable-text/components.tsx'
 
 // Defina os tipos necessários
 type RecommendedService = {
@@ -17,6 +18,7 @@ type RecommendedService = {
   service: {
     _id: string
     name: string
+    slug?: string
     shortDescription: string
   }
 }
@@ -250,7 +252,7 @@ export default async function ReportPage({ params }: { params: { slug: string } 
               subtitle="Entendendo seu cenário atual e oportunidades"
             />
             <div className="prose max-w-none mt-6 text-gray-700">
-              <PortableText value={report.contextAnalysis} />
+              <PortableText value={report.contextAnalysis} components={portableTextComponents} />
             </div>
           </div>
 
@@ -317,7 +319,7 @@ export default async function ReportPage({ params }: { params: { slug: string } 
                     
                     <Button 
                       variant="primary" 
-                      href={`/servicos/${rec.service._id}`}
+                      href={rec.service.slug ? `/solucoes/${rec.service.slug}` : `/solucoes/${rec.service._id}`}
                     >
                       Saiba mais sobre este serviço
                     </Button>

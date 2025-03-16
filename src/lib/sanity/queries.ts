@@ -26,6 +26,7 @@ export const getReportBySlug = groq`
       service->{
         _id,
         name,
+        "slug": slug.current,
         shortDescription,
         problemsSolved,
         howItWorks

@@ -52,6 +52,12 @@ export function useReturningLead(): ReturningLeadState {
   });
 
   useEffect(() => {
+    // Debug para o localStorage
+    console.log('[useReturningLead] DEBUG localStorage:', {
+      leadId: localStorage.getItem(LEAD_STORAGE_KEY),
+      expiry: localStorage.getItem(LEAD_EXPIRY_KEY)
+    });
+    
     let isActive = true;
     
     const identifyLead = async () => {
