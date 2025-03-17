@@ -44,6 +44,15 @@ export async function generateMetadata({ params }: { params: { slug: string } })
 export default async function ServicePage({ params }: { params: { slug: string } }) {
   const service = await getServiceBySlug(params.slug);
   
+  // Log para debug
+  console.log("Service data:", JSON.stringify({
+    name: service?.name,
+    hasHowItWorks: !!service?.howItWorks,
+    hasHowItWorksSteps: !!service?.howItWorksSteps,
+    howItWorksStepsLength: service?.howItWorksSteps?.length,
+    howItWorksSteps: service?.howItWorksSteps
+  }, null, 2));
+  
   if (!service) {
     notFound();
   }
@@ -59,6 +68,8 @@ export default async function ServicePage({ params }: { params: { slug: string }
       <ServiceHeader
         name={service.name}
         shortDescription={service.shortDescription}
+        marketingTitle={service.marketingTitle}
+        marketingDescription={service.marketingDescription}
         image={service.image}
       />
       
@@ -69,10 +80,16 @@ export default async function ServicePage({ params }: { params: { slug: string }
       />
       
       {/* Benefícios do serviço */}
-      <ServiceBenefits benefitsHTML={service.benefitsHTML} />
+      <ServiceBenefits benefitsHTML={service.benefitsHTML} benefitsList={service.benefitsList} />
       
       {/* Como o serviço funciona */}
-      <ServiceHowItWorks howItWorks={service.howItWorks} />
+      {(service.howItWorks || service.howItWorksSteps) && (
+        <ServiceHowItWorks 
+          howItWorks={service.howItWorks} 
+          howItWorksSteps={service.howItWorksSteps || []} 
+          slug={params.slug}
+        />
+      )}
       
       {/* Requisitos */}
       <ServiceRequirements requirements={service.requirements} />

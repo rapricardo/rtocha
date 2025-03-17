@@ -3,6 +3,8 @@ import { urlForImage } from "@/lib/sanity/image";
 interface ServiceHeaderProps {
   name: string;
   shortDescription: string;
+  marketingTitle?: string;
+  marketingDescription?: string;
   image?: {
     asset: {
       _ref: string;
@@ -11,13 +13,13 @@ interface ServiceHeaderProps {
   };
 }
 
-export default function ServiceHeader({ name, shortDescription, image }: ServiceHeaderProps) {
+export default function ServiceHeader({ name, shortDescription, marketingTitle, marketingDescription, image }: ServiceHeaderProps) {
   return (
     <section className="bg-gradient-to-r from-[#d32b36] to-[#e67a48] text-white py-20">
       <div className="container mx-auto px-4 flex flex-col md:flex-row items-center">
         <div className="md:w-1/2 mb-8 md:mb-0 md:pr-8">
-          <h1 className="text-4xl md:text-5xl font-bold mb-6">{name}</h1>
-          <p className="text-xl md:text-2xl leading-relaxed opacity-90">{shortDescription}</p>
+          <h1 className="text-4xl md:text-5xl font-bold mb-6">{marketingTitle || name}</h1>
+          <p className="text-xl md:text-2xl leading-relaxed opacity-90">{marketingDescription || shortDescription}</p>
           <div className="mt-8">
             <a 
               href="#agendar-consultoria" 

@@ -40,7 +40,9 @@ export async function getServiceBySlug(slug: string): Promise<Service | null> {
       fullDescription,
       problemsSolved,
       benefitsHTML,
+      benefitsList,
       howItWorks,
+      howItWorksSteps,
       requirements,
       metrics,
       implementationTimeframe,
@@ -60,7 +62,9 @@ export async function getServiceBySlug(slug: string): Promise<Service | null> {
       forDigitalMaturity,
       forMainChallenges,
       forImprovementGoals,
-      priority
+      priority,
+      marketingTitle,
+      marketingDescription
     }
   `;
 
@@ -108,7 +112,9 @@ export async function getServiceById(id: string): Promise<Service | null> {
       fullDescription,
       problemsSolved,
       benefitsHTML,
+      benefitsList,
       howItWorks,
+      howItWorksSteps,
       requirements,
       metrics,
       implementationTimeframe,
@@ -116,7 +122,9 @@ export async function getServiceById(id: string): Promise<Service | null> {
       forDigitalMaturity,
       forMainChallenges,
       forImprovementGoals,
-      priority
+      priority,
+      marketingTitle,
+      marketingDescription
     }
   `;
 
