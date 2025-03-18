@@ -11,6 +11,11 @@ const nextConfig: NextConfig = {
   // Desabilitar lint durante o build
   eslint: {
     ignoreDuringBuilds: true,
+  },
+
+  // Configurar domínios de imagens permitidos
+  images: {
+    domains: ['cdn.sanity.io'],
   }
 };
 

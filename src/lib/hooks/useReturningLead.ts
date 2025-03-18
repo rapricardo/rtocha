@@ -13,6 +13,30 @@ interface LeadInfo {
   mainChallenge?: string;
   improvementGoal?: string;
   lastInteraction: Date;
+  recommendedServices?: {
+    _id: string;
+    name: string;
+    slug: { current: string };
+  }[];
+  customImages?: {
+    welcomeImage?: {
+      _type: string;
+      asset: {
+        _id: string;
+        url: string;
+        path: string;
+      };
+    };
+    ctaServiceImage?: any;
+    ctaWhatsappImage?: any;
+    resultsImage?: any;
+  };
+  companyAnalysis?: {
+    perplexitySummary?: string;
+    linkedinAnalysis?: string;
+    leadLinkedinAnalysis?: string;
+    emotionalPitch?: string;
+  };
 }
 
 interface LeadReportInfo {
@@ -52,12 +76,6 @@ export function useReturningLead(): ReturningLeadState {
   });
 
   useEffect(() => {
-    // Debug para o localStorage
-    console.log('[useReturningLead] DEBUG localStorage:', {
-      leadId: localStorage.getItem(LEAD_STORAGE_KEY),
-      expiry: localStorage.getItem(LEAD_EXPIRY_KEY)
-    });
-    
     let isActive = true;
     
     const identifyLead = async () => {
@@ -154,7 +172,29 @@ async function fetchLeadData(leadId: string): Promise<ReturningLeadData | null> 
       companyName,
       mainChallenge,
       improvementGoal,
-      "lastInteraction": coalesce(updatedAt, createdAt)
+      "lastInteraction": coalesce(updatedAt, createdAt),
+      recommendedServices[]->{_id, name, "slug": slug.current},
+      customImages {
+        welcomeImage {
+          _type,
+          asset-> {
+            _id,
+            url,
+            path
+          }
+        },
+        ctaServiceImage {
+          _type,
+          asset-> {
+            _id,
+            url,
+            path
+          }
+        },
+        ctaWhatsappImage,
+        resultsImage
+      },
+      companyAnalysis
     },
     "reports": *[_type == "report" && references($leadId)]{
       _id,
