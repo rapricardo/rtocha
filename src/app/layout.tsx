@@ -36,6 +36,15 @@ export const metadata: Metadata = {
   authors: [{ name: "Ricardo Tocha" }],
   creator: "Ricardo Tocha",
   publisher: "Ricardo Tocha",
+  icons: {
+    icon: '/favicon.ico',
+    shortcut: '/favicon.ico',
+    apple: '/favicon.ico',
+    other: {
+      rel: 'apple-touch-icon',
+      url: '/favicon.ico',
+    },
+  },
   openGraph: {
     type: "website",
     locale: "pt_BR",
