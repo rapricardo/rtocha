@@ -72,33 +72,74 @@ function LeadQualificationSteps() {
       {steps.map((step, index) => (
         <div 
           key={index} 
-          className={`mb-16 last:mb-0 md:flex ${index % 2 === 0 ? 'md:flex-row' : 'md:flex-row-reverse'} items-center`}
+          className="relative mb-16 last:mb-0"
         >
-          {/* Círculo numerado */}
-          <div className="flex-shrink-0 mx-auto md:mx-0 mb-6 md:mb-0 md:mx-8 z-10 relative">
-            <div className="w-16 h-16 rounded-full bg-gradient-to-r from-[#d32b36] to-[#e67a48] flex items-center justify-center text-white font-bold text-2xl shadow-lg">
-              {step.number}
-            </div>
-            
-            {/* Conectores em forma de seta - apenas em mobile */}
-            {index < steps.length - 1 && (
-              <div className="md:hidden absolute left-1/2 bottom-[-24px] transform -translate-x-1/2">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M12 4L12 20M12 20L18 14M12 20L6 14" stroke="#d32b36" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              </div>
+          {/* Linha vertical de fluxo (visível em versão mobile) */}
+          {index < steps.length - 1 && (
+            <div className="md:hidden absolute left-1/2 top-[60px] bottom-[-40px] w-1 bg-gradient-to-b from-[#d32b36] to-[#e67a48] transform -translate-x-1/2 rounded-full"></div>
+          )}
+          
+          <div className="flex flex-col md:flex-row items-center justify-center">
+            {/* Caixa à esquerda para passos pares (0, 2, 4...) */}
+            {index % 2 === 0 ? (
+              <>
+                {/* Espaço para dispositivos móveis */}
+                <div className="hidden md:block w-1/2 pr-8">
+                  <div className={`bg-gray-50 rounded-xl p-6 shadow-md relative float-right max-w-[90%]`}>
+                    {/* Triangulo apontando para o círculo */}
+                    <div className="hidden md:block absolute top-1/2 right-[-10px] transform -translate-y-1/2">
+                      <div className="w-0 h-0 border-y-[10px] border-y-transparent border-l-[10px] border-l-gray-50"></div>
+                    </div>
+                    
+                    <h3 className="text-xl font-bold mb-3">{step.title}</h3>
+                    <p className="text-gray-700">{step.content}</p>
+                  </div>
+                </div>
+                
+                {/* Círculo numerado - centralizado */}
+                <div className="flex-shrink-0 z-10 relative mx-auto">
+                  <div className="w-16 h-16 rounded-full bg-gradient-to-r from-[#d32b36] to-[#e67a48] flex items-center justify-center text-white font-bold text-2xl shadow-lg">
+                    {step.number}
+                  </div>
+                </div>
+                
+                {/* Espaço vazio à direita para manter alinhamento */}
+                <div className="hidden md:block w-1/2 pl-8"></div>
+              </>
+            ) : (
+              <>
+                {/* Espaço vazio à esquerda para manter alinhamento */}
+                <div className="hidden md:block w-1/2 pr-8"></div>
+                
+                {/* Círculo numerado - centralizado */}
+                <div className="flex-shrink-0 z-10 relative mx-auto">
+                  <div className="w-16 h-16 rounded-full bg-gradient-to-r from-[#d32b36] to-[#e67a48] flex items-center justify-center text-white font-bold text-2xl shadow-lg">
+                    {step.number}
+                  </div>
+                </div>
+                
+                {/* Caixa à direita para passos ímpares (1, 3, 5...) */}
+                <div className="hidden md:block w-1/2 pl-8">
+                  <div className={`bg-gray-50 rounded-xl p-6 shadow-md relative max-w-[90%]`}>
+                    {/* Triangulo apontando para o círculo */}
+                    <div className="hidden md:block absolute top-1/2 left-[-10px] transform -translate-y-1/2">
+                      <div className="w-0 h-0 border-y-[10px] border-y-transparent border-r-[10px] border-r-gray-50"></div>
+                    </div>
+                    
+                    <h3 className="text-xl font-bold mb-3">{step.title}</h3>
+                    <p className="text-gray-700">{step.content}</p>
+                  </div>
+                </div>
+              </>
             )}
           </div>
           
-          {/* Conteúdo do passo */}
-          <div className={`bg-gray-50 rounded-xl p-6 shadow-md flex-grow relative ${index % 2 === 0 ? 'md:ml-4' : 'md:mr-4'}`}>
-            {/* Triangulo apontando para o círculo - apenas em desktop */}
-            <div className={`hidden md:block absolute top-1/2 transform -translate-y-1/2 ${index % 2 === 0 ? 'left-[-10px]' : 'right-[-10px]'}`}>
-              <div className={`w-0 h-0 border-y-[10px] border-y-transparent ${index % 2 === 0 ? 'border-r-[10px] border-r-gray-50' : 'border-l-[10px] border-l-gray-50'}`}></div>
+          {/* Versão mobile - exibe a caixa abaixo do número para todos os passos */}
+          <div className="md:hidden mt-6">
+            <div className="bg-gray-50 rounded-xl p-6 shadow-md relative">
+              <h3 className="text-xl font-bold mb-3">{step.title}</h3>
+              <p className="text-gray-700">{step.content}</p>
             </div>
-            
-            <h3 className="text-xl font-bold mb-3">{step.title}</h3>
-            <p className="text-gray-700">{step.content}</p>
           </div>
         </div>
       ))}
@@ -146,33 +187,74 @@ export default function ServiceHowItWorks({ howItWorks, howItWorksSteps, slug }:
               {orderedSteps.map((step, index) => (
                 <div 
                   key={step._key || index} 
-                  className={`mb-16 last:mb-0 md:flex ${index % 2 === 0 ? 'md:flex-row' : 'md:flex-row-reverse'} items-center`}
+                  className="relative mb-16 last:mb-0"
                 >
-                  {/* Círculo numerado */}
-                  <div className="flex-shrink-0 mx-auto md:mx-0 mb-6 md:mb-0 md:mx-8 z-10 relative">
-                    <div className="w-16 h-16 rounded-full bg-gradient-to-r from-[#d32b36] to-[#e67a48] flex items-center justify-center text-white font-bold text-2xl shadow-lg">
-                      {step.stepNumber || index + 1}
-                    </div>
-                    
-                    {/* Conectores em forma de seta - apenas em mobile */}
-                    {index < orderedSteps.length - 1 && (
-                      <div className="md:hidden absolute left-1/2 bottom-[-24px] transform -translate-x-1/2">
-                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          <path d="M12 4L12 20M12 20L18 14M12 20L6 14" stroke="#d32b36" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                        </svg>
-                      </div>
+                  {/* Linha vertical de fluxo (visível em versão mobile) */}
+                  {index < orderedSteps.length - 1 && (
+                    <div className="md:hidden absolute left-1/2 top-[60px] bottom-[-40px] w-1 bg-gradient-to-b from-[#d32b36] to-[#e67a48] transform -translate-x-1/2 rounded-full"></div>
+                  )}
+                  
+                  <div className="flex flex-col md:flex-row items-center justify-center">
+                    {/* Caixa à esquerda para passos pares (0, 2, 4...) */}
+                    {index % 2 === 0 ? (
+                      <>
+                        {/* Espaço para dispositivos móveis */}
+                        <div className="hidden md:block w-1/2 pr-8">
+                          <div className={`bg-gray-50 rounded-xl p-6 shadow-md relative float-right max-w-[90%]`}>
+                            {/* Triangulo apontando para o círculo */}
+                            <div className="hidden md:block absolute top-1/2 right-[-10px] transform -translate-y-1/2">
+                              <div className="w-0 h-0 border-y-[10px] border-y-transparent border-l-[10px] border-l-gray-50"></div>
+                            </div>
+                            
+                            <h3 className="text-xl font-bold mb-3">{step.title || step.name || `Passo ${index + 1}`}</h3>
+                            <p className="text-gray-700">{step.description || step.content || ''}</p>
+                          </div>
+                        </div>
+                        
+                        {/* Círculo numerado - centralizado */}
+                        <div className="flex-shrink-0 z-10 relative mx-auto">
+                          <div className="w-16 h-16 rounded-full bg-gradient-to-r from-[#d32b36] to-[#e67a48] flex items-center justify-center text-white font-bold text-2xl shadow-lg">
+                            {step.stepNumber || index + 1}
+                          </div>
+                        </div>
+                        
+                        {/* Espaço vazio à direita para manter alinhamento */}
+                        <div className="hidden md:block w-1/2 pl-8"></div>
+                      </>
+                    ) : (
+                      <>
+                        {/* Espaço vazio à esquerda para manter alinhamento */}
+                        <div className="hidden md:block w-1/2 pr-8"></div>
+                        
+                        {/* Círculo numerado - centralizado */}
+                        <div className="flex-shrink-0 z-10 relative mx-auto">
+                          <div className="w-16 h-16 rounded-full bg-gradient-to-r from-[#d32b36] to-[#e67a48] flex items-center justify-center text-white font-bold text-2xl shadow-lg">
+                            {step.stepNumber || index + 1}
+                          </div>
+                        </div>
+                        
+                        {/* Caixa à direita para passos ímpares (1, 3, 5...) */}
+                        <div className="hidden md:block w-1/2 pl-8">
+                          <div className={`bg-gray-50 rounded-xl p-6 shadow-md relative max-w-[90%]`}>
+                            {/* Triangulo apontando para o círculo */}
+                            <div className="hidden md:block absolute top-1/2 left-[-10px] transform -translate-y-1/2">
+                              <div className="w-0 h-0 border-y-[10px] border-y-transparent border-r-[10px] border-r-gray-50"></div>
+                            </div>
+                            
+                            <h3 className="text-xl font-bold mb-3">{step.title || step.name || `Passo ${index + 1}`}</h3>
+                            <p className="text-gray-700">{step.description || step.content || ''}</p>
+                          </div>
+                        </div>
+                      </>
                     )}
                   </div>
                   
-                  {/* Conteúdo do passo */}
-                  <div className={`bg-gray-50 rounded-xl p-6 shadow-md flex-grow relative ${index % 2 === 0 ? 'md:ml-4' : 'md:mr-4'}`}>
-                    {/* Triangulo apontando para o círculo - apenas em desktop */}
-                    <div className={`hidden md:block absolute top-1/2 transform -translate-y-1/2 ${index % 2 === 0 ? 'left-[-10px]' : 'right-[-10px]'}`}>
-                      <div className={`w-0 h-0 border-y-[10px] border-y-transparent ${index % 2 === 0 ? 'border-r-[10px] border-r-gray-50' : 'border-l-[10px] border-l-gray-50'}`}></div>
+                  {/* Versão mobile - exibe a caixa abaixo do número para todos os passos */}
+                  <div className="md:hidden mt-6">
+                    <div className="bg-gray-50 rounded-xl p-6 shadow-md relative">
+                      <h3 className="text-xl font-bold mb-3">{step.title || step.name || `Passo ${index + 1}`}</h3>
+                      <p className="text-gray-700">{step.description || step.content || ''}</p>
                     </div>
-                    
-                    <h3 className="text-xl font-bold mb-3">{step.title || step.name || `Passo ${index + 1}`}</h3>
-                    <p className="text-gray-700">{step.description || step.content || ''}</p>
                   </div>
                 </div>
               ))}

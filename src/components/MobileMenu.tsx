@@ -45,21 +45,21 @@ export function MobileMenu() {
         <div className="absolute top-full left-0 right-0 bg-white shadow-md py-3 px-4 z-20">
           <nav className="flex flex-col space-y-3">
             <a 
-              href="#sobre" 
+              href="/#sobre" 
               className="py-2 text-gray-700 hover:text-[#d32b36]"
               onClick={() => setIsOpen(false)}
             >
               Sobre
             </a>
             <a 
-              href="#servicos" 
+              href="/#servicos" 
               className="py-2 text-gray-700 hover:text-[#d32b36]"
               onClick={() => setIsOpen(false)}
             >
               Serviços
             </a>
             <a 
-              href="#cta-section" 
+              href="/#cta-section" 
               className="py-2 text-gray-700 hover:text-[#d32b36]"
               onClick={() => setIsOpen(false)}
             >

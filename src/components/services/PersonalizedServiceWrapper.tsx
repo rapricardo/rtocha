@@ -76,7 +76,7 @@ export default function PersonalizedServiceWrapper({ serviceId }: PersonalizedSe
   }
   
   return (
-    <div className="container mx-auto px-4 pt-6">
+    <div className="container mx-auto px-4">
       <PersonalizedServiceBanner
         leadInfo={leadInfo}
         service={service}
