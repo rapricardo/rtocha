@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { groq } from 'next-sanity';
-import { client } from '@/lib/sanity/client';
+import { createClient } from 'next-sanity'
 
 // Definição dos tipos
 interface LeadInfo {
@@ -71,6 +71,15 @@ interface ReturningLeadState {
 const LEAD_STORAGE_KEY = 'rt_lead_id';
 const LEAD_EXPIRY_KEY = 'rt_lead_expiry';
 const STORAGE_DURATION_DAYS = 90; // Armazenar por 90 dias
+
+export const client = createClient({
+  projectId: 'wm03zquh',
+  dataset: 'production',
+  apiVersion: '2023-05-03',
+  useCdn: true,
+  // Usando a variável NEXT_PUBLIC para acesso client-side
+  token: process.env.NEXT_PUBLIC_SANITY_API_TOKEN || undefined,
+})
 
 /**
  * Hook para identificar e recuperar dados de leads retornantes
