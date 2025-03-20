@@ -253,6 +253,3 @@ async function fetchLeadData(leadId: string): Promise<ReturningLeadData | null> 
     lastReportDate
   };
 }
-
-const isClient = typeof window !== 'undefined';
-const leadId = isClient ? localStorage.getItem('leadId') : null;
