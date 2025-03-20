@@ -79,42 +79,62 @@ async function updateReportStatus(leadId: string, status: string, message: strin
 // Esta função é executada em background e não bloqueia a resposta da API
 async function generateReportAsync(leadId: string) {
   try {
+    console.log(`🚀 generateReportAsync: Iniciando geração para lead: ${leadId}`);
+    console.log('🔑 Verificando token Sanity:', !!process.env.SANITY_API_TOKEN ? 'Disponível' : 'Não disponível');
+
     // 1. Atualizar o status para "processando"
     await updateReportStatus(
       leadId, 
       'processing', 
       'Iniciando a geração do relatório...'
     );
+    console.log(`✅ Status atualizado para "processing" para lead ${leadId}`);
 
     // 2. Buscar dados do lead
-    const lead = await sanityClient.fetch(
-      groq`*[_type == "lead" && _id == $leadId][0]`,
-      { leadId }
-    );
+    let lead;
+    try {
+      console.log(`🔍 Buscando dados do lead ${leadId}...`);
+      lead = await sanityClient.fetch(
+        groq`*[_type == "lead" && _id == $leadId][0]`,
+        { leadId }
+      );
+      
+      console.log(`🔍 Dados do lead encontrados:`, lead ? 'Sim' : 'Não');
 
-    if (!lead) {
+      if (!lead) {
+        console.log(`❌ Lead ${leadId} não encontrado no banco de dados`);
+        await updateReportStatus(
+          leadId, 
+          'failed', 
+          'Lead não encontrado no banco de dados'
+        );
+        return;
+      }
+
+      // 3. Verificar se já existe um relatório para este lead
+      if (lead.report) {
+        console.log(`ℹ️ Lead ${leadId} já possui um relatório associado:`, lead.report);
+        await updateReportStatus(
+          leadId, 
+          'completed', 
+          'Relatório já existente recuperado com sucesso'
+        );
+        return;
+      }
+    } catch (fetchError) {
+      console.error(`❌ Erro ao buscar dados do lead: ${fetchError}`);
       await updateReportStatus(
         leadId, 
         'failed', 
-        'Lead não encontrado no banco de dados'
-      );
-      return;
-    }
-
-    // 3. Verificar se já existe um relatório para este lead
-    if (lead.report) {
-      console.log(`ℹ️ Lead ${leadId} já possui um relatório associado`);
-      await updateReportStatus(
-        leadId, 
-        'completed', 
-        'Relatório já existente recuperado com sucesso'
+        `Erro ao buscar dados do lead: ${fetchError instanceof Error ? fetchError.message : 'Erro desconhecido'}`
       );
       return;
     }
 
     // 4. Iniciar geração - Com até 3 tentativas
-    let attempt = 0;
     const MAX_ATTEMPTS = 3;
+    console.log(`🔄 Iniciando geração do relatório em até ${MAX_ATTEMPTS} tentativas`);
+    let attempt = 0;
     let success = false;
     let lastError = null;
 
@@ -134,7 +154,9 @@ async function generateReportAsync(leadId: string) {
         
         // TODO: Substituir esta seção com a chamada real para sua função de geração de relatório
         // Simulação de geração de relatório (remover e substituir pelo código real)
+        console.log('⏳ Simulando processamento de 3 segundos...');
         await new Promise(resolve => setTimeout(resolve, 3000)); // Simulação de processamento
+        console.log('✅ Processamento simulado concluído');
         
         const reportData = {
           reportTitle: `Relatório para ${lead.companyName || lead.name}`,
@@ -144,6 +166,7 @@ async function generateReportAsync(leadId: string) {
         };
         
         // Criar o relatório no Sanity
+        console.log('📝 Criando documento de relatório no Sanity...');
         const report = await sanityClient.create({
           _type: 'report',
           reportTitle: reportData.reportTitle,
@@ -169,8 +192,10 @@ async function generateReportAsync(leadId: string) {
           createdAt: new Date().toISOString(),
           views: 0
         });
+        console.log('✅ Documento de relatório criado com ID:', report._id);
 
         // Associar o relatório ao lead
+        console.log('🔄 Associando relatório ao lead...');
         await sanityClient
           .patch(leadId)
           .set({
@@ -179,6 +204,7 @@ async function generateReportAsync(leadId: string) {
             updatedAt: new Date().toISOString()
           })
           .commit();
+        console.log('✅ Relatório associado ao lead com sucesso');
 
         // Atualizar status final
         await updateReportStatus(

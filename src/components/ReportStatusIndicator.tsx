@@ -25,10 +25,14 @@ export default function ReportStatusIndicator({ leadId }: ReportStatusProps) {
     // Flag para evitar memory leaks se o componente for desmontado
     let isActive = true;
     
+    console.log('🔍 ReportStatusIndicator: Iniciando monitoramento para leadId:', leadId);
+    
     // Função para buscar o status atual
     const fetchStatus = async () => {
       try {
         if (!leadId) return;
+        
+        console.log('🔍 Buscando status atual do relatório para leadId:', leadId);
         
         const result = await client.fetch(groq`
           *[_type == "lead" && _id == $leadId][0]{
@@ -37,11 +41,16 @@ export default function ReportStatusIndicator({ leadId }: ReportStatusProps) {
           }
         `, { leadId });
         
+        console.log('🔍 Resultado da busca:', result);
+        
         if (!isActive) return;
         
         if (result) {
           setStatus(result.reportStatus || null);
           setReportId(result.report?._id || null);
+          
+          console.log('🔍 Status do relatório:', result.reportStatus?.status || 'não definido');
+          console.log('🔍 ID do relatório:', result.report?._id || 'não disponível');
           
           // Se o relatório está completo ou se já existe um ID de relatório,
           // não precisamos mais verificar
@@ -52,14 +61,17 @@ export default function ReportStatusIndicator({ leadId }: ReportStatusProps) {
             
           if (isCompleted) {
             // Parar o polling se o relatório está pronto
+            console.log('🔍 Relatório completo ou disponível, parando polling');
             return true;
           }
+        } else {
+          console.log('🔍 Nenhum resultado encontrado para o leadId:', leadId);
         }
         return false;
       } catch (error) {
         if (!isActive) return false;
         
-        console.error('Erro ao buscar status do relatório:', error);
+        console.error('❌ Erro ao buscar status do relatório:', error);
         setError('Erro ao verificar o status do relatório');
         return false;
       } finally {

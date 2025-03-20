@@ -28,7 +28,14 @@ export async function createLead(leadData: LeadData) {
     // Iniciar geração assíncrona do relatório
     try {
       // Chamada assíncrona - não esperamos pelo resultado
-      fetch('/api/reports/generate', {
+      // Usamos URL absoluta baseada na localização atual (funciona tanto localmente quanto em produção)
+      const baseUrl = typeof window !== 'undefined' 
+        ? window.location.origin
+        : process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+        
+      console.log(`🔄 Iniciando geração de relatório via ${baseUrl}/api/reports/generate`);
+      
+      fetch(`${baseUrl}/api/reports/generate`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
