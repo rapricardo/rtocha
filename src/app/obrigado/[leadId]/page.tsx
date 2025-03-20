@@ -1,12 +1,14 @@
 'use client';
 
 import { useEffect } from 'react';
+import { use } from 'react';
 import { storeLeadId } from '@/lib/hooks/useReturningLead';
 import ReportStatusIndicator from '@/components/ReportStatusIndicator';
 import Link from 'next/link';
 
-export default function ThankYouPage({ params }: { params: { leadId: string } }) {
-  const { leadId } = params;
+export default function ThankYouPage({ params }: { params: Promise<{ leadId: string }> }) {
+  // Desembrulhar o objeto params usando React.use()
+  const { leadId } = use(params);
   
   // Armazenar leadId no localStorage para identificar lead retornante
   useEffect(() => {
