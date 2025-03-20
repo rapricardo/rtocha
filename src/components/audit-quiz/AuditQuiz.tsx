@@ -191,7 +191,9 @@ export default function AuditQuiz() {
 
   // Enviar todas as respostas
   const submitAnswers = async () => {
+    console.log('[DEBUG] Submetendo questionário');
     setIsSubmitting(true);
+    setError(null);
     
     try {
       const response = await fetch('/api/audit-quiz/submit', {
@@ -218,6 +220,10 @@ export default function AuditQuiz() {
       if (data.preview?.leadId) {
         console.log('[DEBUG] Armazenando leadId no localStorage:', data.preview.leadId);
         storeLeadId(data.preview.leadId);
+        
+        // Redirecionar para a página de agradecimento com o leadId
+        window.location.href = `/obrigado/${data.preview.leadId}`;
+        return; // Importante: retornar para evitar alterações de estado após o redirecionamento
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Ocorreu um erro ao enviar suas respostas';

@@ -6,15 +6,48 @@ import { LeadData, ReportData } from '@/lib/types';
 export async function createLead(leadData: LeadData) {
   try {
     console.log('📝 Criando lead com dados:', leadData);
-    const result = await sanityClient.create({
+    
+    // Adicionar timestamp e status inicial do relatório
+    const timestamp = new Date().toISOString();
+    const lead = await sanityClient.create({
       _type: 'lead',
       ...leadData,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+      createdAt: timestamp,
+      updatedAt: timestamp,
+      // Inicializar o status do relatório como "em fila"
+      reportStatus: {
+        status: 'queued',
+        message: 'Relatório está na fila para geração',
+        updatedAt: timestamp,
+        attempts: 0
+      }
     });
     
-    console.log('✅ Lead criado com sucesso:', result._id);
-    return result._id;
+    console.log('✅ Lead criado com sucesso:', lead._id);
+    
+    // Iniciar geração assíncrona do relatório
+    try {
+      // Chamada assíncrona - não esperamos pelo resultado
+      fetch('/api/reports/generate', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          leadId: lead._id 
+        }),
+      }).catch(err => {
+        console.error('⚠️ Erro ao iniciar geração de relatório (não bloqueante):', err);
+        // Não lançamos o erro aqui para não bloquear a criação do lead
+      });
+      
+      console.log('🔄 Processo de geração de relatório iniciado para:', lead._id);
+    } catch (genError) {
+      // Apenas logamos o erro, não afeta a criação do lead
+      console.error('⚠️ Erro ao chamar API de geração (não bloqueante):', genError);
+    }
+    
+    return lead._id;
   } catch (error) {
     console.error('❌ Erro ao criar lead:', error);
     throw error;
