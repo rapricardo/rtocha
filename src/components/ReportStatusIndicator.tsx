@@ -173,7 +173,7 @@ export default function ReportStatusIndicator({ leadId }: ReportStatusProps) {
           {status?.message || 'Seu relatório personalizado está pronto para visualização.'}
         </p>
         <a 
-          href={`/reports/${reportId}`}
+          href={`/relatorios/${reportId}`}
           className="inline-block px-5 py-2 bg-blue-600 text-white font-medium rounded-md hover:bg-blue-700 transition-colors"
         >
           Ver Relatório Completo
@@ -280,7 +280,7 @@ export default function ReportStatusIndicator({ leadId }: ReportStatusProps) {
             </p>
             {reportId && (
               <a 
-                href={`/reports/${reportId}`}
+                href={`/relatorios/${reportId}`}
                 className="inline-block px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
               >
                 Ver Relatório Parcial
