@@ -1,12 +1,14 @@
 import { createClient } from 'next-sanity';
 
-const projectId = process.env.NEXT_PUBLIC_SANITY_PROJECT_ID;
-const dataset = process.env.NEXT_PUBLIC_SANITY_DATASET;
-const apiVersion = process.env.NEXT_PUBLIC_SANITY_API_VERSION;
+// Use valores padrão para garantir que nunca sejam undefined
+const projectId = process.env.NEXT_PUBLIC_SANITY_PROJECT_ID || 'wm03zquh';
+const dataset = process.env.NEXT_PUBLIC_SANITY_DATASET || 'production';
+const apiVersion = process.env.NEXT_PUBLIC_SANITY_API_VERSION || '2023-05-03';
 
-// IMPORTANTE: Este token é temporário para testes! Substitua com sua variável de ambiente em produção
-// Use apenas para desenvolvimento e teste
-const TEMP_TOKEN = process.env.SANITY_API_TOKEN || '';
+// Usar a versão NEXT_PUBLIC do token para acesso client-side
+const PUBLIC_TOKEN = process.env.NEXT_PUBLIC_SANITY_API_TOKEN || '';
+// Usar a versão privada para server-side (em API routes)
+const PRIVATE_TOKEN = process.env.SANITY_API_TOKEN || PUBLIC_TOKEN;
 
 // Cliente para uso no frontend (somente leitura)
 export const client = createClient({
@@ -14,23 +16,25 @@ export const client = createClient({
   dataset,
   apiVersion,
   useCdn: process.env.NODE_ENV === 'production',
+  // Só precisa de token para queries que requerem autenticação
+  token: PUBLIC_TOKEN || undefined,
 });
 
-// Cliente para operações de escrita
+// Cliente para operações de escrita - só usado em API routes (server-side)
 export const sanityClient = createClient({
   projectId,
   dataset,
   apiVersion,
   useCdn: false,
-  token: TEMP_TOKEN,
-  // Sem perspective para garantir permissões totais
+  token: PRIVATE_TOKEN,
 });
 
-// Para DEBUG - remova na produção
-if (!TEMP_TOKEN) {
-  console.warn('⚠️ SANITY_API_TOKEN não está definido!');
-} else {
-  console.log('✅ Token configurado para cliente Sanity');
+// Removendo logs que aparecem no console
+// Logs mais discretos apenas em desenvolvimento
+if (process.env.NODE_ENV !== 'production') {
+  if (!PUBLIC_TOKEN && !PRIVATE_TOKEN) {
+    console.log('🔑 Nenhum token Sanity configurado - usando modo de leitura pública apenas');
+  }
 }
 
 export default sanityClient;
