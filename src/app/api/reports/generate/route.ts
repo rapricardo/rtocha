@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server';
 import { sanityClient } from '@/lib/sanity/client';
 import { groq } from 'next-sanity';
+import { generatePersonalizedRecommendations, generateContextAnalysis } from '@/lib/ai/gemini';
+import { updateLead } from '@/lib/sanity/mutations';
+import { generateReportId } from '@/lib/utils/reportGenerator';
+import { ServiceData, Recommendation } from '@/lib/types';
 
 // Endpoint de API para geração assíncrona de relatórios
 export async function POST(request: Request) {
@@ -78,9 +82,12 @@ async function updateReportStatus(leadId: string, status: string, message: strin
 // Função assíncrona para geração do relatório
 // Esta função é executada em background e não bloqueia a resposta da API
 async function generateReportAsync(leadId: string) {
+  const MAX_ATTEMPTS = 3;
+  console.log(`🚀 generateReportAsync: Iniciando geração para lead: ${leadId} (máximo ${MAX_ATTEMPTS} tentativas)`);
+  
   try {
-    console.log(`🚀 generateReportAsync: Iniciando geração para lead: ${leadId}`);
     console.log('🔑 Verificando token Sanity:', !!process.env.SANITY_API_TOKEN ? 'Disponível' : 'Não disponível');
+    console.log('🔑 Verificando token Google AI:', !!process.env.GOOGLE_AI_API_KEY ? 'Disponível' : 'Não disponível');
 
     // 1. Atualizar o status para "processando"
     await updateReportStatus(
@@ -131,9 +138,7 @@ async function generateReportAsync(leadId: string) {
       return;
     }
 
-    // 4. Iniciar geração - Com até 3 tentativas
-    const MAX_ATTEMPTS = 3;
-    console.log(`🔄 Iniciando geração do relatório em até ${MAX_ATTEMPTS} tentativas`);
+    // 4. Iniciar geração - Com até MAX_ATTEMPTS tentativas
     let attempt = 0;
     let success = false;
     let lastError = null;
@@ -149,64 +154,137 @@ async function generateReportAsync(leadId: string) {
           1 // Incrementar o contador de tentativas
         );
 
-        // 5. Gerar o relatório
         console.log(`🔄 Tentativa ${attempt}/${MAX_ATTEMPTS} de gerar relatório para o lead ${leadId}`);
         
-        // TODO: Substituir esta seção com a chamada real para sua função de geração de relatório
-        // Simulação de geração de relatório (remover e substituir pelo código real)
-        console.log('⏳ Simulando processamento de 3 segundos...');
-        await new Promise(resolve => setTimeout(resolve, 3000)); // Simulação de processamento
-        console.log('✅ Processamento simulado concluído');
+        // 5. PARTE REAL DE GERAÇÃO DO RELATÓRIO
         
-        const reportData = {
-          reportTitle: `Relatório para ${lead.companyName || lead.name}`,
-          leadId: lead._id,
-          reportId: `report-${lead._id}`,
-          // Outros campos do relatório
-        };
+        // 5.1 Buscar serviços disponíveis
+        console.log('📝 Buscando serviços disponíveis');
+        const services = await sanityClient.fetch(`*[_type == "service"]{
+          _id,
+          name,
+          shortDescription,
+          problemsSolved,
+          forCompanySize,
+          forDigitalMaturity,
+          forMainChallenges,
+          forImprovementGoals,
+          priority
+        }`);
         
-        // Criar o relatório no Sanity
-        console.log('📝 Criando documento de relatório no Sanity...');
+        if (!services || services.length === 0) {
+          throw new Error('Nenhum serviço disponível para recomendação');
+        }
+        
+        console.log(`📊 Encontrados ${services.length} serviços disponíveis`);
+        
+        // 5.2 Gerar recomendações personalizadas com o Gemini
+        console.log('🧠 Gerando recomendações personalizadas com Gemini');
+        const recommendations = await generatePersonalizedRecommendations(lead, services);
+        
+        if (!recommendations || !recommendations.recommendations) {
+          throw new Error('Falha ao gerar recomendações personalizadas');
+        }
+        
+        console.log(`✅ Geradas ${recommendations.recommendations.length} recomendações`);
+        
+        // 5.3 Gerar análise de contexto
+        console.log('🧠 Gerando análise de contexto');
+        const contextAnalysisData = await generateContextAnalysis(lead);
+        
+        if (!contextAnalysisData) {
+          throw new Error('Falha ao gerar análise de contexto');
+        }
+        
+        console.log('✅ Análise de contexto gerada com sucesso');
+        
+        // 5.4 Mapear os nomes dos serviços para IDs e referências
+        console.log('📝 Estruturando dados para o relatório');
+        const serviceMap = Object.fromEntries(
+          services.map((service: ServiceData) => [service.name, service._id])
+        );
+        
+        const recommendedServices = recommendations.recommendations.map((rec: Recommendation, index: number) => {
+          // Encontrar o ID do serviço pelo nome
+          const serviceId = serviceMap[rec.serviceName];
+          
+          if (!serviceId) {
+            console.warn(`⚠️ Serviço não encontrado: ${rec.serviceName}`);
+          }
+          
+          return {
+            _key: `rec_${index}`,
+            priority: rec.priority,
+            customProblemDescription: rec.problemDescription,
+            customImpactDescription: rec.impactDescription,
+            customBenefits: rec.benefits,
+            service: {
+              _type: 'reference',
+              _ref: serviceId || 'service-1' // Fallback para um serviço padrão se não encontrar
+            }
+          };
+        });
+        
+        // 5.5 Preparar dados de contexto no formato Portable Text
+        const visaoGeralText = contextAnalysisData.visaoGeral || 
+          "Análise personalizada para identificar oportunidades de automação em processos de marketing e vendas.";
+        
+        const contextAnalysis = [
+          {
+            _key: 'block_0',
+            _type: 'block',
+            style: 'normal',
+            children: [
+              {
+                _key: 'span_0',
+                _type: 'span',
+                marks: [],
+                text: contextAnalysisData.analiseContexto || 
+                  "Com base nas informações compartilhadas, identificamos oportunidades significativas para otimização através da automação inteligente."
+              }
+            ]
+          }
+        ];
+        
+        // 5.6 Gerar ID único para o relatório
+        const reportId = generateReportId();
+        console.log(`📝 ID do relatório gerado: ${reportId}`);
+        
+        // 5.7 Criar relatório no Sanity
+        console.log('💾 Criando documento de relatório no Sanity');
         const report = await sanityClient.create({
           _type: 'report',
-          reportTitle: reportData.reportTitle,
+          reportId: reportId,
           lead: { _type: 'reference', _ref: leadId },
+          reportTitle: `Mini-Auditoria para ${lead.companyName || lead.name || 'Sua Empresa'}`,
+          summary: visaoGeralText,
+          contextAnalysis: contextAnalysis,
+          recommendedServices: recommendedServices,
           slug: {
             _type: 'slug',
-            current: reportData.reportId
+            current: reportId
           },
-          // Substitua por dados reais
-          reportContent: [
-            {
-              _type: 'block',
-              children: [
-                {
-                  _type: 'span',
-                  text: 'Conteúdo de exemplo do relatório.',
-                  marks: []
-                }
-              ],
-              style: 'normal'
-            }
-          ],
+          expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // Expira em 30 dias
           createdAt: new Date().toISOString(),
           views: 0
         });
+        
         console.log('✅ Documento de relatório criado com ID:', report._id);
 
-        // Associar o relatório ao lead
+        // 5.8 Associar o relatório ao lead e atualizar status
         console.log('🔄 Associando relatório ao lead...');
-        await sanityClient
-          .patch(leadId)
-          .set({
-            report: { _type: 'reference', _ref: report._id },
-            reportGenerated: true,
-            updatedAt: new Date().toISOString()
-          })
-          .commit();
+        await updateLead(leadId, {
+          status: 'qualified',
+          reportGenerated: true,
+          report: { 
+            _type: 'reference', 
+            _ref: report._id 
+          }
+        });
+        
         console.log('✅ Relatório associado ao lead com sucesso');
 
-        // Atualizar status final
+        // 5.9 Atualizar status final
         await updateReportStatus(
           leadId, 
           'completed', 

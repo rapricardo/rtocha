@@ -18,6 +18,7 @@ interface ReportStatus {
 export default function ReportStatusIndicator({ leadId }: ReportStatusProps) {
   const [status, setStatus] = useState<ReportStatus | null>(null);
   const [reportId, setReportId] = useState<string | null>(null);
+  const [reportSlug, setReportSlug] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [pollingCount, setPollingCount] = useState(0);
@@ -51,7 +52,11 @@ export default function ReportStatusIndicator({ leadId }: ReportStatusProps) {
         const result = await client.fetch(groq`
           *[_type == "lead" && _id == $leadId][0]{
             reportStatus,
-            report->{_id}
+            report->{
+              _id,
+              "slug": slug.current,
+              reportId
+            }
           }
         `, { leadId });
         
@@ -60,9 +65,11 @@ export default function ReportStatusIndicator({ leadId }: ReportStatusProps) {
         if (result) {
           setStatus(result.reportStatus || null);
           setReportId(result.report?._id || null);
+          setReportSlug(result.report?.slug || result.report?.reportId || null);
           
           console.log(`🔍 [#${currentCount}] Status:`, result.reportStatus?.status || 'não definido');
           console.log(`🔍 [#${currentCount}] ID do relatório:`, result.report?._id || 'não disponível');
+          console.log(`🔍 [#${currentCount}] Slug do relatório:`, result.report?.slug || result.report?.reportId || 'não disponível');
           
           // Se o relatório está completo ou se já existe um ID de relatório,
           // não precisamos mais verificar
@@ -173,7 +180,7 @@ export default function ReportStatusIndicator({ leadId }: ReportStatusProps) {
           {status?.message || 'Seu relatório personalizado está pronto para visualização.'}
         </p>
         <a 
-          href={`/relatorios/${reportId}`}
+          href={`/relatorios/${reportSlug || reportId}`}
           className="inline-block px-5 py-2 bg-blue-600 text-white font-medium rounded-md hover:bg-blue-700 transition-colors"
         >
           Ver Relatório Completo
@@ -280,7 +287,7 @@ export default function ReportStatusIndicator({ leadId }: ReportStatusProps) {
             </p>
             {reportId && (
               <a 
-                href={`/relatorios/${reportId}`}
+                href={`/relatorios/${reportSlug || reportId}`}
                 className="inline-block px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
               >
                 Ver Relatório Parcial

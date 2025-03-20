@@ -172,7 +172,7 @@ async function generateReportAsync(reportRequestId: string, leadId: string) {
     reportStatusService.update(reportRequestId, {
       status: 'completed',
       completedAt: new Date().toISOString(),
-      reportUrl: data.reportUrl
+      reportUrl: `/relatorios/${data.reportSlug || data.reportId}`
     });
     
     // Debug: Verificar status após atualização
