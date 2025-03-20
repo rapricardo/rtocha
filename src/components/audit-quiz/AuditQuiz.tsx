@@ -5,6 +5,7 @@ import QuizProgress from './QuizProgress';
 import QuizQuestion from './QuizQuestion';
 import QuizComplete from './QuizComplete';
 import { QuizPreview, QuizAnswerValue } from '@/lib/types';
+import { storeLeadId } from '@/lib/hooks/useReturningLead';
 
 // Definição das perguntas do quiz
 const questions = [
@@ -212,6 +213,12 @@ export default function AuditQuiz() {
       
       // Guardar preview para exibição
       setPreview(data.preview);
+      
+      // Armazenar leadId no localStorage imediatamente após a criação do lead
+      if (data.preview?.leadId) {
+        console.log('[DEBUG] Armazenando leadId no localStorage:', data.preview.leadId);
+        storeLeadId(data.preview.leadId);
+      }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Ocorreu um erro ao enviar suas respostas';
       setError(errorMessage);

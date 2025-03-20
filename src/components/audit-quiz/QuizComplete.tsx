@@ -40,6 +40,7 @@ export default function QuizComplete({
   // Função para armazenar o ID do lead quando o relatório estiver pronto
   const handleReportSuccess = (leadId: string) => {
     if (leadId) {
+      console.log('[DEBUG QuizComplete] Armazenando leadId novamente após relatório gerado:', leadId);
       storeLeadId(leadId);
     }
   };

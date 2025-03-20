@@ -92,8 +92,13 @@ export function useReturningLead(): ReturningLeadState {
         const storedLeadId = localStorage.getItem(LEAD_STORAGE_KEY);
         const expiryDate = localStorage.getItem(LEAD_EXPIRY_KEY);
         
+        console.log('[DEBUG useReturningLead] Verificando lead retornante');
+        console.log('[DEBUG useReturningLead] Lead ID encontrado:', storedLeadId);
+        console.log('[DEBUG useReturningLead] Data de expiração:', expiryDate);
+        
         // Se não há ID armazenado ou expirou, não é um lead retornante
         if (!storedLeadId || !expiryDate || new Date(expiryDate) < new Date()) {
+          console.log('[DEBUG useReturningLead] Não é um lead retornante: ID não encontrado ou expirado');
           if (isActive) {
             setState({
               isReturningLead: false,
@@ -106,10 +111,13 @@ export function useReturningLead(): ReturningLeadState {
         }
         
         // Buscar dados do lead no Sanity
+        console.log('[DEBUG useReturningLead] Buscando dados do lead:', storedLeadId);
         const leadData = await fetchLeadData(storedLeadId);
+        console.log('[DEBUG useReturningLead] Dados retornados do Sanity:', leadData ? 'Dados encontrados' : 'Nenhum dado');
         
         if (isActive) {
           if (leadData) {
+            console.log('[DEBUG useReturningLead] Lead identificado como retornante');
             setState({
               isReturningLead: true,
               isLoading: false,
@@ -118,6 +126,7 @@ export function useReturningLead(): ReturningLeadState {
             });
           } else {
             // Lead ID encontrado no localStorage, mas não no Sanity
+            console.log('[DEBUG useReturningLead] ID encontrado no localStorage, mas não no Sanity');
             setState({
               isReturningLead: false,
               isLoading: false,
@@ -218,8 +227,20 @@ async function fetchLeadData(leadId: string): Promise<ReturningLeadData | null> 
   const result = await client.fetch(query, { leadId });
   
   if (!result.lead) {
+    console.log('[DEBUG fetchLeadData] Lead não encontrado no Sanity');
     return null;
   }
+  
+  // Log detalhado dos dados recuperados
+  console.log('[DEBUG fetchLeadData] Lead encontrado:', result.lead._id);
+  console.log('[DEBUG fetchLeadData] Nome:', result.lead.name);
+  console.log('[DEBUG fetchLeadData] Empresa:', result.lead.companyName);
+  console.log('[DEBUG fetchLeadData] Tem customImagesUrls:', result.lead.customImagesUrls ? 'Sim' : 'Não');
+  if (result.lead.customImagesUrls) {
+    console.log('[DEBUG fetchLeadData] customImagesUrls:', JSON.stringify(result.lead.customImagesUrls));
+  }
+  console.log('[DEBUG fetchLeadData] Tem customImages (legado):', result.lead.customImages ? 'Sim' : 'Não');
+  console.log('[DEBUG fetchLeadData] Número de relatórios:', result.reports.length);
   
   // Encontrar a data do relatório mais recente
   const lastReportDate = result.reports.length > 0 
@@ -232,3 +253,6 @@ async function fetchLeadData(leadId: string): Promise<ReturningLeadData | null> 
     lastReportDate
   };
 }
+
+const isClient = typeof window !== 'undefined';
+const leadId = isClient ? localStorage.getItem('leadId') : null;
