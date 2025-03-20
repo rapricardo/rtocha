@@ -31,7 +31,7 @@ export async function createLead(leadData: LeadData) {
       // Usamos URL absoluta baseada na localização atual (funciona tanto localmente quanto em produção)
       const baseUrl = typeof window !== 'undefined' 
         ? window.location.origin
-        : process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+        : process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3001';
         
       console.log(`🔄 Iniciando geração de relatório via ${baseUrl}/api/reports/generate`);
       
@@ -43,6 +43,13 @@ export async function createLead(leadData: LeadData) {
         body: JSON.stringify({ 
           leadId: lead._id 
         }),
+      }).then(response => {
+        if (!response.ok) {
+          throw new Error(`Resposta de erro: ${response.status}`);
+        }
+        return response.json();
+      }).then(data => {
+        console.log('✅ Resposta da API de geração:', data);
       }).catch(err => {
         console.error('⚠️ Erro ao iniciar geração de relatório (não bloqueante):', err);
         // Não lançamos o erro aqui para não bloquear a criação do lead
