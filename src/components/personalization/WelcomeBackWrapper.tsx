@@ -14,8 +14,11 @@ export default function WelcomeBackWrapper() {
     if (!isLoading) {
       console.log('[WelcomeBackWrapper] isReturningLead:', isReturningLead);
       console.log('[WelcomeBackWrapper] Lead data:', data?.lead);
-      console.log('[WelcomeBackWrapper] Welcome image:', data?.lead?.customImages?.welcomeImage);
-      console.log('[WelcomeBackWrapper] Has image asset:', !!data?.lead?.customImages?.welcomeImage?.asset);
+      // Log para ambos os formatos (legado e novo)
+      console.log('[WelcomeBackWrapper] Welcome image (legacy):', data?.lead?.customImages?.welcomeImage);
+      console.log('[WelcomeBackWrapper] Welcome image URL (new):', data?.lead?.customImagesUrls?.welcomeImageUrl);
+      console.log('[WelcomeBackWrapper] Has legacy image asset:', !!data?.lead?.customImages?.welcomeImage?.asset);
+      console.log('[WelcomeBackWrapper] Has new image URL:', !!data?.lead?.customImagesUrls?.welcomeImageUrl);
     }
   }, [isLoading, isReturningLead, data]);
 
@@ -24,8 +27,10 @@ export default function WelcomeBackWrapper() {
     return null;
   }
 
-  // Verificar se temos os dados do lead com a imagem
-  const hasCustomImage = !!data.lead?.customImages?.welcomeImage?.asset?.url;
+  // Verificar se temos os dados do lead com a imagem (em qualquer formato)
+  const hasLegacyImage = !!data.lead?.customImages?.welcomeImage?.asset?.url;
+  const hasNewImage = !!data.lead?.customImagesUrls?.welcomeImageUrl;
+  const hasCustomImage = hasLegacyImage || hasNewImage;
 
   return (
     <div className="space-y-8">

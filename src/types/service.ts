@@ -58,4 +58,18 @@ export interface LeadInfo {
     name: string;
     slug: string;
   }[];
+  // Campo legado para compatibilidade
+  customImages?: {
+    welcomeImage?: any;
+    ctaServiceImage?: any;
+    ctaWhatsappImage?: any;
+    resultsImage?: any;
+  };
+  // Novo campo de URLs para imagens personalizadas
+  customImagesUrls?: {
+    welcomeImageUrl?: string;
+    ctaServiceImageUrl?: string;
+    ctaWhatsappImageUrl?: string;
+    resultsImageUrl?: string;
+  };
 }

@@ -5,6 +5,8 @@ import Image from 'next/image';
 import { Button } from '@/components/Button';
 import { useReturningLead } from '@/lib/hooks/useReturningLead';
 import { urlForImage } from '@/lib/sanity/image';
+import { getPersonalizedImageUrl } from '@/lib/services/imageUtils';
+import PersonalizedImage from './PersonalizedImage';
 
 interface PersonalizedWelcomeBlockProps {
   className?: string;
@@ -18,11 +20,13 @@ export default function PersonalizedWelcomeBlock({ className = '', forceDisplay 
   useEffect(() => {
     if (!isLoading) {
       console.log('[PersonalizedWelcomeBlock] Data:', data);
-      console.log('[PersonalizedWelcomeBlock] Welcome image:', data?.lead?.customImages?.welcomeImage);
+      // Log de ambos os formatos de imagem
+      console.log('[PersonalizedWelcomeBlock] Welcome image (legacy):', data?.lead?.customImages?.welcomeImage);
+      console.log('[PersonalizedWelcomeBlock] Welcome image URL (new):', data?.lead?.customImagesUrls?.welcomeImageUrl);
       
-      // Log mais detalhado da estrutura da imagem
+      // Log mais detalhado da estrutura da imagem legada
       if (data?.lead?.customImages?.welcomeImage) {
-        console.log('Image structure:', JSON.stringify(data.lead.customImages.welcomeImage, null, 2));
+        console.log('Legacy image structure:', JSON.stringify(data.lead.customImages.welcomeImage, null, 2));
       }
     }
   }, [isLoading, data]);
@@ -36,36 +40,40 @@ export default function PersonalizedWelcomeBlock({ className = '', forceDisplay 
   const firstName = data?.lead?.name?.split(' ')[0] || 'visitante';
   const companyName = data?.lead?.companyName || 'sua empresa';
   
-  // Verificar se temos a imagem personalizada e extrair URL
-  const hasWelcomeImage = data?.lead?.customImages?.welcomeImage?.asset?.url;
+  // Imagem padrão para fallback
+  const defaultImage = '/images/personagem-_tocha_em_uma_camiseta_amarela_com_uma_postura_amigvel_e_receptiva_demonstrando_abertura_jzix2dyie3u1gj8e6a9f_2.webp';
   
-  // Obter URL diretamente do asset ou usar uma imagem padrão
-  let imageUrl = hasWelcomeImage 
-    ? data.lead.customImages.welcomeImage.asset.url
-    : '/images/personagem-_tocha_em_uma_camiseta_amarela_com_uma_postura_amigvel_e_receptiva_demonstrando_abertura_jzix2dyie3u1gj8e6a9f_2.webp';
+  // Usar o utilitário para obter a URL da imagem (checando ambos os formatos)
+  const imageUrl = getPersonalizedImageUrl(
+    data?.lead, 
+    'welcome', 
+    defaultImage
+  );
+  
+  // Verificar se temos uma imagem personalizada (em qualquer formato)
+  const hasWelcomeImage = imageUrl !== defaultImage;
   const reports = data?.reports || [];
 
   // Imagem de demonstração quando não há imagem personalizada
   const demoImageUrl = '/images/tocha_segurando_placa.jpg'; // Substitua pelo caminho real da imagem de demonstração
 
   return (
-    <div className={`bg-gradient-to-r from-gray-50 to-blue-50 rounded-xl p-6 my-6 shadow-md ${className}`}>
-      <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
-        <div className="w-full md:w-2/5 relative">
-          {/* Usamos sempre a imagem estática para demonstração */}
-          <div className="relative">
-            <Image 
-              src={imageUrl}
-              alt={`Mensagem personalizada para ${firstName}`}
-              width={500}
-              height={350}
-              className="rounded-lg shadow-sm object-cover max-h-[300px] w-full"
-              priority
-            />
-          </div>
+    <div className={`bg-gradient-to-r from-gray-50 to-blue-50 rounded-xl p-6 pt-8 my-6 shadow-md ${className}`}>
+      <div className="flex flex-col md:flex-row items-center gap-6">
+        <div className="w-full md:w-2/5 flex justify-center">
+          {/* Usando o novo componente PersonalizedImage com exibição completa */}
+          <PersonalizedImage 
+            imageType="welcome"
+            fallbackImageUrl="/images/personagem-_tocha_em_uma_camiseta_amarela_com_uma_postura_amigvel_e_receptiva_demonstrando_abertura_jzix2dyie3u1gj8e6a9f_2.webp"
+            alt={`Mensagem personalizada para ${firstName}`}
+            width={500}
+            height={350}
+            className="rounded-lg shadow-sm w-full h-auto object-contain"
+            priority
+          />
         </div>
         
-        <div className="w-full md:w-3/5 flex flex-col">
+        <div className="w-full md:w-3/5 flex flex-col justify-center">
           <h2 className="text-2xl md:text-3xl font-bold mb-3 text-gray-800">
             <span className="text-[#d32b36]">{firstName}</span>, mudei meu site só pra você.
           </h2>

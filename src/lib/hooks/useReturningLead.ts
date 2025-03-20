@@ -18,6 +18,7 @@ interface LeadInfo {
     name: string;
     slug: { current: string };
   }[];
+  // Campo legado para compatibilidade com dados antigos
   customImages?: {
     welcomeImage?: {
       _type: string;
@@ -30,6 +31,13 @@ interface LeadInfo {
     ctaServiceImage?: any;
     ctaWhatsappImage?: any;
     resultsImage?: any;
+  };
+  // Novo campo de URLs para imagens personalizadas
+  customImagesUrls?: {
+    welcomeImageUrl?: string;
+    ctaServiceImageUrl?: string;
+    ctaWhatsappImageUrl?: string;
+    resultsImageUrl?: string;
   };
   companyAnalysis?: {
     perplexitySummary?: string;
@@ -174,6 +182,7 @@ async function fetchLeadData(leadId: string): Promise<ReturningLeadData | null> 
       improvementGoal,
       "lastInteraction": coalesce(updatedAt, createdAt),
       recommendedServices[]->{_id, name, "slug": slug.current},
+      // Campo legado para compatibilidade
       customImages {
         welcomeImage {
           _type,
@@ -194,6 +203,8 @@ async function fetchLeadData(leadId: string): Promise<ReturningLeadData | null> 
         ctaWhatsappImage,
         resultsImage
       },
+      // Novo campo de URLs de imagens
+      customImagesUrls,
       companyAnalysis
     },
     "reports": *[_type == "report" && references($leadId)]{
