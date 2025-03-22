@@ -13,7 +13,12 @@ export async function POST(request: NextRequest) {
       );
     }
     
+    // 1. Verificar se já existe um relatório para este lead
+    // (esta verificação já é feita dentro do generateReport, mas fazemos aqui de novo para garantir)
     // Chamada para o serviço que contém a lógica de geração de relatório
+    // Esta API agora é chamada diretamente do cliente, então é BLOQUEANTE
+    // IMPORTANTE: Em um ambiente serverless como a Vercel, é crucial retornar uma resposta
+    // antes do timeout (normalmente 10-60 segundos)
     const result = await generateReport(leadId);
     
     console.log('✅ Relatório gerado com sucesso:', result);

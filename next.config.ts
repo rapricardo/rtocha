@@ -15,7 +15,7 @@ const nextConfig: NextConfig = {
 
   // Configurar domínios de imagens permitidos
   images: {
-    domains: ['cdn.sanity.io'],
+    domains: ['cdn.sanity.io', 'replicate.delivery'],
   }
 };
 

@@ -116,12 +116,8 @@ export async function POST(request: NextRequest) {
       console.log(`- ${item.requestId}: ${item.status.status}`);
     });
     
-    // Iniciar a geração do relatório de forma assíncrona
-    setTimeout(() => {
-      generateReportAsync(reportRequestId, leadId)
-        .catch(error => console.error('Erro na geração assíncrona:', error));
-    }, 100);
-    
+    // NOTA: A geração do relatório AGORA será iniciada do cliente,
+    // usando o componente ReportStatusIndicator
     console.log('✅ Solicitação de relatório iniciada com sucesso, retornando requestId:', reportRequestId);
     return NextResponse.json({ 
       success: true,
@@ -147,38 +143,4 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// Função assíncrona para gerar o relatório em background
-async function generateReportAsync(reportRequestId: string, leadId: string) {
-  try {
-    console.log(`📝 Gerando relatório assíncrono para lead ${leadId} (requestId: ${reportRequestId})`);
-    
-    // Chamar diretamente o serviço de geração de relatório
-    const result = await generateReport(leadId);
-    
-    console.log('✅ Relatório gerado com sucesso:', result);
-    
-    // Atualizar o status do relatório para 'completed'
-    reportStatusService.update(reportRequestId, {
-      status: 'completed',
-      completedAt: new Date().toISOString(),
-      reportUrl: `/relatorios/${result.reportSlug || result.reportId}`
-    });
-    
-    // Debug: Verificar status após atualização
-    const updatedStatus = reportStatusService.get(reportRequestId);
-    console.log(`📊 Status atualizado para ${reportRequestId}:`, updatedStatus);
-    
-    return result;
-  } catch (error) {
-    console.error('❌ Erro ao gerar relatório assíncrono:', error);
-    
-    // Atualizar o status do relatório para 'failed'
-    reportStatusService.update(reportRequestId, {
-      status: 'failed',
-      completedAt: new Date().toISOString(),
-      error: error instanceof Error ? error.message : 'Erro desconhecido ao gerar relatório'
-    });
-    
-    throw error;
-  }
-}
+

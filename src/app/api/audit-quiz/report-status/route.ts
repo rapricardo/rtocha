@@ -1,14 +1,71 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { reportStatusService } from '@/lib/services/reportStatus';
+import { sanityClient } from '@/lib/sanity/client';
+import { groq } from 'next-sanity';
 
 export async function GET(request: NextRequest) {
   try {
     // Extrair o reportRequestId da URL
     const { searchParams } = new URL(request.url);
     const reportRequestId = searchParams.get('reportRequestId');
+    const leadId = searchParams.get('leadId'); // Novo parâmetro para suportar o novo fluxo
     
-    console.log(`📝 API /report-status: Verificando status para requestId: ${reportRequestId}`);
+    console.log(`📝 API /report-status: Verificando status para requestId: ${reportRequestId}, leadId: ${leadId}`);
     
+    // Se temos um leadId, verificar diretamente no Sanity se há um relatório
+    if (leadId) {
+      console.log(`📝 Verificando relatório para leadId: ${leadId}`);
+      
+      try {
+        const leadReport = await sanityClient.fetch(groq`
+          *[_type == "report" && lead._ref == $leadId][0]{
+            _id,
+            "slug": slug.current,
+            reportId
+          }
+        `, { leadId });
+        
+        if (leadReport) {
+          console.log(`✅ Relatório encontrado para lead: ${leadId}`);
+          
+          return NextResponse.json(
+            {
+              success: true,
+              status: 'completed',
+              reportUrl: `/relatorios/${leadReport.slug || leadReport.reportId}`,
+              message: 'Seu relatório está pronto!'
+            },
+            {
+              headers: {
+                'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+                'Pragma': 'no-cache',
+                'Expires': '0'
+              }
+            }
+          );
+        } else {
+          console.log(`📝 Nenhum relatório encontrado para lead: ${leadId}`);
+          
+          // Se não há relatório, informar que ainda está em processamento
+          return NextResponse.json(
+            {
+              success: true,
+              status: 'processing',
+              message: 'Seu relatório está sendo gerado...'
+            },
+            {
+              headers: {
+                'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+                'Pragma': 'no-cache',
+                'Expires': '0'
+              }
+            }
+          );
+        }
+      } catch (error) {
+        console.error('❌ Erro ao verificar relatório no Sanity:', error);
+      }
+    }
     if (!reportRequestId) {
       console.log('❌ ID de solicitação não fornecido');
       return NextResponse.json(

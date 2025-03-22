@@ -49,6 +49,34 @@ export default function ReportStatusIndicator({ leadId }: ReportStatusProps) {
           return true; // Sinal para parar o polling
         }
         
+        // *** Verificação direta via leadId usando o novo parâmetro ***
+        const statusUrl = `/api/audit-quiz/report-status?leadId=${encodeURIComponent(leadId)}`;
+        console.log(`🔍 [Verificação #${currentCount}] URL:`, statusUrl);
+        
+        const response = await fetch(statusUrl);
+        
+        console.log(`🔍 [Verificação #${currentCount}] Status da resposta:`, response.status);
+        
+        if (!response.ok) {
+          throw new Error(`Falha ao verificar status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        console.log(`🔍 [Verificação #${currentCount}] Dados:`, data);
+        
+        if (data.reportUrl) {
+          setReportId(data.reportId || 'report-found');
+          setReportSlug(data.reportUrl.split('/').pop() || 'report');
+          return true; // Relatório pronto, parar polling
+        }
+        
+        // Se não encontrou relatório e estamos na terceira verificação, tentar iniciar geração
+        if (currentCount === 3 && data.status === 'processing') {
+          console.log(`🔍 [Verificação #${currentCount}] Nenhum relatório encontrado após 3 tentativas, iniciando geração...`);
+          startReportGeneration();
+        }
+        
+        // Verificar se foi feita a consulta no Sanity, se não, tentar buscar também
         const result = await client.fetch(groq`
           *[_type == "lead" && _id == $leadId][0]{
             reportStatus,
@@ -106,11 +134,48 @@ export default function ReportStatusIndicator({ leadId }: ReportStatusProps) {
       }
     };
     
+    // Iniciar a geração do relatório imediatamente
+    const startReportGeneration = async () => {
+      try {
+        console.log('🔍 Iniciando a geração do relatório para leadId:', leadId);
+        
+        const response = await fetch('/api/audit-quiz/generate-report', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ leadId }),
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Erro ao iniciar geração: ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        console.log('✅ Geração iniciada/concluída:', data);
+        
+        // Se já temos o ID do relatório, atualizar estado
+        if (data.reportId) {
+          setReportId(data.reportId);
+          setReportSlug(data.reportSlug || data.reportId);
+        }
+      } catch (error) {
+        console.error('❌ Erro ao iniciar geração:', error);
+        setError(`Falha ao iniciar geração do relatório: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    };
+    
     // Primeira verificação imediata
     fetchStatus().then(shouldStop => {
       if (shouldStop) {
         console.log('🛑 Interrompendo polling após primeira verificação');
         return;
+      }
+      
+      // Se não encontramos um relatório existente, iniciar a geração
+      if (!reportId) {
+        startReportGeneration()
+          .catch(error => console.error('Erro ao iniciar geração após verificação:', error));
       }
       
       // Configurar verificação periódica a cada 5 segundos
