@@ -3,7 +3,8 @@ import { updateLead } from '@/lib/sanity/mutations';
 import { generateReportId } from '@/lib/utils/reportGenerator';
 import { v4 as uuidv4 } from 'uuid';
 import { reportStatusService, ReportStatus } from '@/lib/services/reportStatus';
-import { sanityClient } from '@/lib/sanity/client'; // Adicionado para buscar relatórios existentes
+import { sanityClient } from '@/lib/sanity/client'; 
+import { generateReport } from '@/lib/services/reports/reportGenerator';
 
 export async function POST(request: NextRequest) {
   try {
@@ -151,35 +152,23 @@ async function generateReportAsync(reportRequestId: string, leadId: string) {
   try {
     console.log(`📝 Gerando relatório assíncrono para lead ${leadId} (requestId: ${reportRequestId})`);
     
-    // Chamar a API de geração de relatório
-    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3001';
-    const response = await fetch(`${baseUrl}/api/audit-quiz/generate-report`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ leadId }),
-    });
+    // Chamar diretamente o serviço de geração de relatório
+    const result = await generateReport(leadId);
     
-    if (!response.ok) {
-      throw new Error(`Erro ao gerar relatório: ${response.statusText}`);
-    }
-    
-    const data = await response.json();
-    console.log('✅ Relatório gerado com sucesso:', data);
+    console.log('✅ Relatório gerado com sucesso:', result);
     
     // Atualizar o status do relatório para 'completed'
     reportStatusService.update(reportRequestId, {
       status: 'completed',
       completedAt: new Date().toISOString(),
-      reportUrl: `/relatorios/${data.reportSlug || data.reportId}`
+      reportUrl: `/relatorios/${result.reportSlug || result.reportId}`
     });
     
     // Debug: Verificar status após atualização
     const updatedStatus = reportStatusService.get(reportRequestId);
     console.log(`📊 Status atualizado para ${reportRequestId}:`, updatedStatus);
     
-    return data;
+    return result;
   } catch (error) {
     console.error('❌ Erro ao gerar relatório assíncrono:', error);
     
