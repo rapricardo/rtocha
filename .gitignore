@@ -39,3 +39,27 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+
+
+# Testes de API e endpoints de diagnóstico
+/src/app/api/test-*/
+/src/app/api/test-env-vars/
+/src/app/api/test-env/
+/src/app/api/test-sanity/
+/src/app/api/test-write/
+/src/app/api/test-write-lead/
+
+# Scripts de teste
+/docs/testar-api-leads*.sh
+/docs/test-*.sh
+/docs/*-test.js
+/docs/*-teste.js
+
+# Logs e outputs temporários de testes
+/tmp/leads-*.json
+/logs/test-*.log
+
+# Ferramentas de diagnóstico
+/tools/diagnostics/
+/scripts/test/
