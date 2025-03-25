@@ -4,6 +4,7 @@ import { useEffect } from 'react';
 import { use } from 'react';
 import { storeLeadId } from '@/lib/hooks/useReturningLead';
 import ReportStatusIndicator from '@/components/ReportStatusIndicator';
+import AnimatedFacts from '@/components/AnimatedFacts';
 import Link from 'next/link';
 
 export default function ThankYouPage({ params }: { params: Promise<{ leadId: string }> }) {
@@ -37,28 +38,9 @@ export default function ThankYouPage({ params }: { params: Promise<{ leadId: str
           )}
           
           <div className="mt-8 border-t border-gray-200 pt-6">
-            <h3 className="text-lg font-medium mb-4">Enquanto isso, você pode:</h3>
-            <ul className="space-y-2 mb-6">
-              <li className="flex items-start">
-                <span className="text-blue-500 mr-2">✓</span>
-                <span>Explorar nossos <Link href="/solucoes" className="text-blue-600 hover:underline">serviços de automação</Link></span>
-              </li>
-              <li className="flex items-start">
-                <span className="text-blue-500 mr-2">✓</span>
-                <span>Conhecer <Link href="/#cases" className="text-blue-600 hover:underline">casos de sucesso</Link> de outras empresas</span>
-              </li>
-              <li className="flex items-start">
-                <span className="text-blue-500 mr-2">✓</span>
-                <span>Agendar uma <Link href="/contato" className="text-blue-600 hover:underline">conversa com nossa equipe</Link></span>
-              </li>
-            </ul>
+            <h3 className="text-lg font-medium mb-4">Você sabia que...</h3>
+            <AnimatedFacts />
           </div>
-        </div>
-        
-        <div className="text-center">
-          <Link href="/" className="inline-block px-5 py-3 bg-blue-600 text-white font-medium rounded-md hover:bg-blue-700 transition-colors">
-            Voltar para a Página Inicial
-          </Link>
         </div>
       </div>
     </div>
