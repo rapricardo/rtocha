@@ -85,6 +85,22 @@ O sistema implementa rastreamento de:
 - Conta no Sanity.io
 - Chave de API do Google Gemini
 
+## API de Leads para Cache Redis
+
+O projeto inclui um endpoint de exportação de leads para sincronização com Redis, otimizado para uso em agentes de WhatsApp via n8n:
+
+- **Endpoint**: `/api/leads/export`
+- **Autenticação**: Basic Auth via variáveis de ambiente `API_USERNAME` e `API_PASSWORD`
+- **Recursos**:
+  - Exportação de todos os leads do Sanity
+  - Filtros por data de atualização
+  - Controle de inclusão de dados pesados (análises e imagens)
+  - Proteção com autenticação básica
+
+- **Documentação**: Consulte `src/app/api/leads/README.md` para detalhes completos
+- **Exemplo n8n**: Consulte `docs/n8n-redis-leads-workflow.md` para implementação no n8n
+- **Consultas Redis**: Consulte `docs/n8n-redis-consulta-exemplo.js` para exemplos de consultas
+
 ### Instalação
 
 1. Clone o repositório
@@ -144,6 +160,7 @@ sanity deploy
 - [ ] Integração com CRMs populares
 - [ ] Sistema de notificações para leads gerados
 - [ ] Expansão do sistema de recomendações
+- [x] API de leads para cache Redis no n8n
 
 ---
 
