@@ -6,7 +6,7 @@ import { getReportBySlug } from '@/lib/sanity/queries'
 import { Button } from '@/components/Button'
 import { SectionTitle } from '@/components/SectionTitle'
 import { PortableTextBlock } from '@/lib/types'
-import { portableTextComponents } from '@/lib/portable-text/components.tsx'
+import { portableTextComponents } from '@/lib/portable-text/components'
 
 // Defina os tipos necessários
 type RecommendedService = {
@@ -122,9 +122,13 @@ const simulatedReport = {
   ]
 };
 
-export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  // Aguardar a resolução dos parâmetros antes de usá-los
+  const resolvedParams = await params;
+  const slug = resolvedParams.slug;
+  
   try {
-    const report = await client.fetch<Report | null>(getReportBySlug, { slug: params.slug })
+    const report = await client.fetch<Report | null>(getReportBySlug, { slug })
     
     if (!report) {
       return {
@@ -145,14 +149,16 @@ export async function generateMetadata({ params }: { params: { slug: string } })
   }
 }
 
-export default async function ReportPage({ params }: { params: { slug: string } }) {
-  console.log("Buscando relatório com slug:", params.slug);
+export default async function ReportPage({ params }: { params: Promise<{ slug: string }> }) {
+  // Aguardar a resolução dos parâmetros
+  const resolvedParams = await params;
+  console.log("Buscando relatório com slug:", resolvedParams.slug);
   
   let report: Report | null = null;
   let isSimulated = false;
   
   try {
-    report = await client.fetch<Report | null>(getReportBySlug, { slug: params.slug })
+    report = await client.fetch<Report | null>(getReportBySlug, { slug: resolvedParams.slug })
     
     // Se encontrou o relatório, registrar visualização
     if (report) {
