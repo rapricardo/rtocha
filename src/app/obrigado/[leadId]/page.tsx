@@ -22,11 +22,9 @@ export default function ThankYouPage({ params }: { params: Promise<{ leadId: str
       <div className="max-w-3xl mx-auto">
         <div className="text-center mb-8">
           <h1 className="text-3xl md:text-4xl font-bold text-gray-800 mb-4">
-            Obrigado por Compartilhar suas Informações!
+          Estamos gerando seu relatório personalizado
           </h1>
-          <p className="text-xl text-gray-600">
-            Estamos gerando seu relatório personalizado.
-          </p>
+
         </div>
         
         <div className="bg-white rounded-lg shadow-md p-6 mb-8">

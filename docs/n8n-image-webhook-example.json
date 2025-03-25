@@ -1,0 +1,244 @@
+{
+  "name": "Webhook para Geração de Imagem Personalizada",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "generate-personalized-image",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "19d98e51-e82e-4cd4-82df-22cea532d8bd",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        240,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "content": "={\n  \"leadId\": {{$json.body.leadId}},\n  \"imageType\": {{$json.body.imageType}},\n  \"customData\": {\n    \"name\": {{$json.body.name}},\n    \"companyName\": {{$json.body.companyName}},\n    \"industry\": {{$json.body.industry}}\n  }\n}",
+        "options": {}
+      },
+      "id": "3a8e7e2c-6df7-4d68-90f1-2c4b5f5d3121",
+      "name": "Preparar Dados para Replicate",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        460,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://api.replicate.com/v1/predictions",
+        "method": "POST",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "replicateApi",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "model",
+              "value": "stability-ai/sdxl:2bde45c7b2622dee4ca51b95c6d421bccb93826dfbaaf8c31b33eb8d6151bfcd"
+            },
+            {
+              "name": "input",
+              "value": "={\n  \"prompt\": \"a photorealistic image of Ricardo Tocha holding a sign with the name {{$json.customData.name}} from {{$json.customData.companyName}}, high quality, professional\",\n  \"negative_prompt\": \"low quality, blurry, distorted\",\n  \"width\": 768,\n  \"height\": 512,\n  \"num_outputs\": 1\n}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "42c49ebf-5d7e-4edb-82dc-f19bb5cb79b2",
+      "name": "Gerar Imagem via Replicate",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        680,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://api.replicate.com/v1/predictions/{{$json.id}}",
+        "method": "GET",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "replicateApi",
+        "options": {}
+      },
+      "id": "7d8a2e6c-e4d3-4f2b-8a87-3a8ef1c9ddf4",
+      "name": "Verificar Status da Imagem",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        900,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json.status}}",
+              "operation": "notEqual",
+              "value2": "succeeded"
+            }
+          ]
+        }
+      },
+      "id": "3f1d7e9b-df0c-444a-af2d-f48a22cf62e0",
+      "name": "Verificar Conclusão",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "amount": 5,
+        "unit": "seconds"
+      },
+      "id": "5c3a5e7c-f3d7-4d54-9e8b-e7d9c54d6f92",
+      "name": "Aguardar 5 Segundos",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        160
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://api.sanity.io/v2021-06-07/data/mutate/production",
+        "method": "POST",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "sanityApi",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "mutations",
+              "value": "=[\n  {\n    \"patch\": {\n      \"id\": \"{{$node[\"Preparar Dados para Replicate\"].json.leadId}}\",\n      \"set\": {\n        \"customImagesUrls\": {\n          \"{{$node[\"Preparar Dados para Replicate\"].json.imageType}}ImageUrl\": \"{{$json.output[0]}}\"\n        }\n      }\n    }\n  }\n]"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "89f2e6cb-7bcd-41c9-9a9e-2c7de0f3c5a4",
+      "name": "Atualizar Lead no Sanity",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        1340,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": true,\n  \"message\": \"Imagem personalizada gerada com sucesso\",\n  \"imageUrl\": \"{{$json.output[0]}}\",\n  \"leadId\": \"{{$node[\"Preparar Dados para Replicate\"].json.leadId}}\",\n  \"imageType\": \"{{$node[\"Preparar Dados para Replicate\"].json.imageType}}\"\n}",
+        "options": {}
+      },
+      "id": "7a1d4b5b-f3e9-4e67-9efc-e54f9d87a7c5",
+      "name": "Responder com Sucesso",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1560,
+        320
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Preparar Dados para Replicate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar Dados para Replicate": {
+      "main": [
+        [
+          {
+            "node": "Gerar Imagem via Replicate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gerar Imagem via Replicate": {
+      "main": [
+        [
+          {
+            "node": "Verificar Status da Imagem",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verificar Status da Imagem": {
+      "main": [
+        [
+          {
+            "node": "Verificar Conclusão",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verificar Conclusão": {
+      "main": [
+        [
+          {
+            "node": "Aguardar 5 Segundos",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Atualizar Lead no Sanity",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aguardar 5 Segundos": {
+      "main": [
+        [
+          {
+            "node": "Verificar Status da Imagem",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Atualizar Lead no Sanity": {
+      "main": [
+        [
+          {
+            "node": "Responder com Sucesso",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

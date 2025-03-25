@@ -99,6 +99,15 @@ Principais schemas:
 - Indicadores visuais para serviços recomendados na auditoria
 - Navegação entre serviços relacionados
 
+### 3.7 API de Leads
+- Endpoints REST para acesso programático aos dados de leads armazenados no Sanity
+- Autenticação Basic Auth para segurança dos dados sensíveis
+- Suporte a filtragem por data de atualização e personalização dos dados retornados
+- Integração com Redis para cache de leads, otimizando o uso em agentes de WhatsApp e outros serviços
+- Dois endpoints principais implementados:
+  - `/api/leads/export`: Consulta completa de leads com opções de filtragem
+  - `/api/leads/get-by-id`: Consulta específica de um lead por ID
+
 ## 4. Funcionalidades em Desenvolvimento/Planejadas
 
 ### 4.1 Melhorias nas Páginas de Serviço
@@ -135,9 +144,11 @@ Principais schemas:
 | **Blog** | 🟡 Parcial | Implementar webhooks |
 | **Personalização** | ✅ Implementado | Expandir personalização |
 | **Páginas de Serviço** | ✅ Implementado | Adicionar calculadoras de ROI e conteúdo completo |
-| **WhatsApp** | 🔴 Não iniciado | Configurar Evolution API |
-| **Redes Sociais** | 🔴 Não iniciado | Configurar webhooks n8n |
+| **WhatsApp** | ✅ Implementado | Configurar Evolution API |
+| **Redes Sociais** | ✅ Implementado | Configurar webhooks n8n |
 | **Email Marketing** | 🔴 Não iniciado | Definir fluxos e triggers |
+| **API de Leads** | ✅ Implementado | Expandir endpoints e otimizar cache Redis |
+| **Visualização de Fluxos** | ✅ Implementado | Adicionar dados estruturados a todos os serviços |
 
 ## 6. Estrutura de Arquivos do Projeto
 
@@ -218,26 +229,26 @@ Principais schemas:
 ## 7. Prioridades Atuais
 
 ### 7.1 Prioridade Alta
-1. **✅ Implementação da visualização de fluxos de automação**
-   - ✅ Campo `howItWorksSteps` adicionado ao schema de serviço
-   - ✅ Componente visual com layout alternado esquerda/direita implementado no `ServiceHowItWorks`
-   - ✅ Design responsivo com conectores visuais entre passos implementado
-
-2. **Completar dados no Sanity para serviços**
+1. **Completar dados no Sanity para serviços**
    - Preencher completamente os campos de serviços no Sanity
    - Adicionar dados estruturados de passos para cada serviço utilizando o campo `howItWorksSteps`
    - Adicionar imagens de qualidade para cada serviço
    - Verificar todos os cenários de personalização
 
-3. **Integração com APIs externas**
-   - Configurar webhook Sanity -> n8n
-   - Implementar integração com Replicate para geração de imagens
+2. **Integração com APIs externas**
    - Desenvolver integração com Perplexity e LinkedIn
+   - Expandir uso do webhook Sanity -> n8n já configurado
+   - Otimizar fluxos de processamento assíncrono
 
-4. **Rastreamento e métricas**
+3. **Rastreamento e métricas**
    - Implementar sistema de eventos para rastreamento detalhado de interações
    - Configurar dashboard de conversão específico para leads retornantes
    - Adicionar rastreamento de cliques e conversões para análise
+
+4. **Verificar e corrigir campos do quiz de auditoria**
+   - Auditar campos não salvos no Sanity
+   - Garantir que todos os dados coletados estejam sendo persistidos
+   - Otimizar estrutura de dados para melhor análise
 
 ### 7.2 Prioridade Média
 1. **Calculadoras de ROI**
@@ -317,11 +328,11 @@ Principais schemas:
 
 ## 11. Conclusão e Próximos Passos Prioritários
 
-O projeto encontra-se em fase avançada, com várias funcionalidades essenciais implementadas, incluindo as páginas de serviço, a personalização para leads retornantes e a visualização de fluxos de automação. As prioridades imediatas são:
+O projeto encontra-se em fase avançada, com várias funcionalidades essenciais implementadas, incluindo as páginas de serviço, personalização para leads retornantes, API de leads e visualização de fluxos de automação. As prioridades imediatas são:
 
-1. ✅ Implementar o componente de visualização de fluxos de automação
-2. Adicionar dados estruturados no campo `howItWorksSteps` para todos os serviços no Sanity
-3. Configurar a integração Sanity -> n8n -> APIs externas
+1. Adicionar dados estruturados no campo `howItWorksSteps` para todos os serviços no Sanity
+2. Verificar e corrigir campos do quiz de auditoria que não estão sendo salvos
+3. Expandir uso do webhook Sanity -> n8n já configurado para integrações adicionais
 4. Implementar rastreamento e métricas de conversão
 
 Este documento serve como referência central para o estado atual do projeto e diretrizes para o desenvolvimento contínuo, refletindo as implementações recentes e os próximos passos.

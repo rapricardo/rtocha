@@ -1,0 +1,362 @@
+{
+  "name": "Replicate - Gerar e Armazenar URL de Imagem",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "lead-image",
+        "options": {}
+      },
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        250,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extrair dados do webhook\nconst leadId = $input.item.json.body.leadId;\nconst leadName = $input.item.json.body.name || \"cliente\";\nconst companyName = $input.item.json.body.companyName || \"empresa\";\nconst challenge = $input.item.json.body.mainChallenge || \"desafios de marketing e vendas\";\nconst imageType = $input.item.json.body.imageType || \"welcome\";\n\n// Configurar o prompt base para cada tipo de imagem\nlet prompt = \"\";\nlet negativePrompt = \"baixa qualidade, distorção, texto, letras, ruído digital\";\n\nswitch (imageType) {\n  case \"welcome\":\n    prompt = `Uma imagem profissional e elegante de boas-vindas personalizada para ${leadName} da empresa ${companyName}, mostrando uma visualização futurista de automação de ${challenge}, estilo fotográfico corporativo moderno, cores predominantes azul e branco, iluminação dramática, alta qualidade, ultradetalhada.`;\n    break;\n  case \"ctaService\":\n    prompt = `Uma imagem motivacional para ${leadName} da empresa ${companyName} que representa solução para ${challenge}, mostrando aumento de produtividade e eficiência, pessoas celebrando resultados, estilo fotográfico corporativo moderno, iluminação envolvente, alta qualidade.`;\n    break;\n  case \"ctaWhatsapp\":\n    prompt = `Uma imagem que representa comunicação eficiente para ${leadName} da empresa ${companyName}, mostrando integração de sistemas, conexões entre plataformas, automação de processos, estilo fotográfico corporativo moderno, tons de verde e azul, alta qualidade.`;\n    break;\n  case \"results\":\n    prompt = `Uma imagem que representa resultados positivos e crescimento para ${companyName}, mostrando gráficos ascendentes, pessoas felizes em ambiente corporativo, indicadores de sucesso, estilo fotográfico corporativo moderno, cores vibrantes, alta qualidade.`;\n    break;\n  default:\n    prompt = `Uma imagem profissional relacionada a automação de marketing e vendas para ${leadName} da empresa ${companyName}, focando em ${challenge}, estilo fotográfico corporativo moderno, alta qualidade.`;\n}\n\n// Retornar os dados para o próximo nó\nreturn {\n  leadId,\n  imageType,\n  prompt,\n  negativePrompt,\n  width: 1024,\n  height: 768\n};"
+      },
+      "name": "Preparar Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        460,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://api.replicate.com/v1/predictions",
+        "authentication": "headerAuth",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Token {{$secrets.REPLICATE_API_TOKEN}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {},
+        "bodyParametersUi": {
+          "parameter": [
+            {
+              "name": "version",
+              "value": "stability-ai/sdxl:c221b2b8ef527988fb59bf24a8b97c4561f1c671f73bd389f866bfb27c061316"
+            },
+            {
+              "name": "input",
+              "value": "={\"prompt\": {{$node[\"Preparar Prompt\"].json[\"prompt\"]}}, \"negative_prompt\": {{$node[\"Preparar Prompt\"].json[\"negativePrompt\"]}}, \"width\": {{$node[\"Preparar Prompt\"].json[\"width\"]}}, \"height\": {{$node[\"Preparar Prompt\"].json[\"height\"]}}, \"num_outputs\": 1}"
+            }
+          ]
+        }
+      },
+      "name": "Gerar Imagem Replicate",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        680,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Função para verificar o status da geração de imagem\nasync function checkStatus(prediction) {\n  const MAX_RETRIES = 20; // 20 tentativas com 5s = ~2min de timeout\n  const RETRY_INTERVAL = 5000; // 5 segundos\n  \n  let currentPrediction = prediction;\n  let retries = 0;\n  \n  while (currentPrediction.status !== 'succeeded' && currentPrediction.status !== 'failed' && retries < MAX_RETRIES) {\n    // Aguardar intervalo\n    await new Promise(resolve => setTimeout(resolve, RETRY_INTERVAL));\n    \n    // Fazer nova requisição para verificar status\n    const response = await fetch(`https://api.replicate.com/v1/predictions/${currentPrediction.id}`, {\n      headers: {\n        'Authorization': `Token ${process.env.REPLICATE_API_TOKEN}`\n      }\n    });\n    \n    if (!response.ok) {\n      throw new Error(`Erro ao verificar status: ${response.statusText}`);\n    }\n    \n    currentPrediction = await response.json();\n    retries++;\n    \n    // Log para debug\n    console.log(`Verificação ${retries}/${MAX_RETRIES}: Status = ${currentPrediction.status}`);\n  }\n  \n  if (currentPrediction.status === 'failed') {\n    throw new Error(`A geração da imagem falhou: ${JSON.stringify(currentPrediction.error)}`);\n  }\n  \n  if (retries >= MAX_RETRIES && currentPrediction.status !== 'succeeded') {\n    throw new Error('Tempo limite excedido aguardando a geração da imagem');\n  }\n  \n  // Retornar os dados importantes\n  return {\n    id: currentPrediction.id,\n    status: currentPrediction.status,\n    output: currentPrediction.output,\n    leadId: $input.item.json.leadId,\n    imageType: $input.item.json.imageType\n  };\n}\n\n// Executar a verificação\ntry {\n  const result = await checkStatus($input.item.json);\n  return result;\n} catch (error) {\n  console.error('Erro durante a verificação de status:', error);\n  throw error;\n}"
+      },
+      "name": "Verificar Status",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        900,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{$node[\"Verificar Status\"].json[\"output\"][0]}}",
+        "options": {}
+      },
+      "name": "Verificar URL da Imagem",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        1120,
+        300
+      ],
+      "notesInFlow": true,
+      "notes": "Este nó serve apenas para validar que a URL da imagem está acessível."
+    },
+    {
+      "parameters": {
+        "jsCode": "// Mapear o tipo de imagem para o nome do campo no Sanity\nconst imageTypeMapping = {\n  welcome: 'welcomeImageUrl',\n  ctaService: 'ctaServiceImageUrl',\n  ctaWhatsapp: 'ctaWhatsappImageUrl',\n  results: 'resultsImageUrl'\n};\n\n// Obter a URL da imagem gerada\nconst imageUrl = $input.item.json.output[0];\nconst leadId = $input.item.json.leadId;\nconst imageType = $input.item.json.imageType;\n\n// Verificar se o tipo de imagem é válido\nif (!imageTypeMapping[imageType]) {\n  throw new Error(`Tipo de imagem desconhecido: ${imageType}`);\n}\n\n// Construir o objeto para a mutação do Sanity\nconst fieldName = imageTypeMapping[imageType];\n\n// Construir a mutação para o Sanity\nconst mutation = {\n  mutations: [\n    {\n      patch: {\n        id: leadId,\n        setIfMissing: {\n          customImagesUrls: {}\n        }\n      }\n    },\n    {\n      patch: {\n        id: leadId,\n        set: {\n          [`customImagesUrls.${fieldName}`]: imageUrl\n        }\n      }\n    }\n  ]\n};\n\n// Retornar para o próximo nó\nreturn {\n  leadId,\n  imageType,\n  fieldName,\n  imageUrl,\n  mutation\n};"
+      },
+      "name": "Preparar Sanity Mutation",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        1340,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{$env.SANITY_API_URL}}/v2023-06-01/data/mutate/{{$env.SANITY_DATASET}}",
+        "authentication": "headerAuth",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer {{$env.SANITY_API_TOKEN}}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {},
+        "bodyParametersUi": {
+          "parameter": [
+            {
+              "name": "mutations",
+              "value": "={{$node[\"Preparar Sanity Mutation\"].json[\"mutation\"][\"mutations\"]}}"
+            }
+          ]
+        }
+      },
+      "name": "Atualizar Lead no Sanity",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 3,
+      "position": [
+        1560,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Analisar a resposta do Sanity para confirmar sucesso\nconst responseData = $input.item.json;\nconst leadId = $node[\"Preparar Sanity Mutation\"].json.leadId;\nconst imageType = $node[\"Preparar Sanity Mutation\"].json.imageType;\nconst imageUrl = $node[\"Preparar Sanity Mutation\"].json.imageUrl;\n\n// Verificar se a atualização foi bem-sucedida\nif (!responseData.transactionId) {\n  throw new Error(`Falha ao atualizar o Sanity: ${JSON.stringify(responseData)}`);\n}\n\n// Retornar resumo da operação\nreturn {\n  success: true,\n  leadId,\n  imageType,\n  imageUrl,\n  transactionId: responseData.transactionId,\n  message: `Imagem do tipo ${imageType} atualizada com sucesso para o lead ${leadId}`,\n  timestamp: new Date().toISOString()\n};"
+      },
+      "name": "Resumo da Operação",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        1780,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "channel": "{{$env.SLACK_CHANNEL_ID}}",
+        "text": "=🎉 Nova imagem personalizada gerada\n\n*Lead:* `{{$node[\"Preparar Sanity Mutation\"].json.leadId}}`\n*Tipo:* `{{$node[\"Preparar Sanity Mutation\"].json.imageType}}`\n\n<{{$node[\"Preparar Sanity Mutation\"].json.imageUrl}}|Ver imagem>",
+        "attachments": [],
+        "otherOptions": {}
+      },
+      "name": "Notificar Slack",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 1,
+      "position": [
+        2000,
+        300
+      ],
+      "notesInFlow": true,
+      "notes": "Nó opcional para notificar sobre geração bem-sucedida."
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$input.item.json.status === 'succeeded'}}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "name": "IF",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        500
+      ],
+      "notesInFlow": true,
+      "notes": "Verificar se a geração foi bem-sucedida."
+    },
+    {
+      "parameters": {
+        "triggerTimes": {
+          "item": [
+            {
+              "mode": "everyX",
+              "value": 3,
+              "unit": "hours"
+            }
+          ]
+        }
+      },
+      "name": "Limpeza Periódica",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [
+        250,
+        500
+      ],
+      "notesInFlow": true,
+      "notes": "Tarefa periódica opcional para verificar e limpar tarefas inacabadas."
+    },
+    {
+      "parameters": {
+        "jsCode": "// Código para verificar tarefas pendentes e realizar limpeza\n// Você pode implementar lógica para verificar no banco de dados\n// ou em um arquivo de log quais tarefas estão pendentes por muito tempo\n\n// Exemplo simples:\nreturn {\n  message: \"Executando limpeza periódica de tarefas pendentes\",\n  timestamp: new Date().toISOString()\n};"
+      },
+      "name": "Executar Limpeza",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        460,
+        500
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Preparar Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar Prompt": {
+      "main": [
+        [
+          {
+            "node": "Gerar Imagem Replicate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gerar Imagem Replicate": {
+      "main": [
+        [
+          {
+            "node": "Verificar Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verificar Status": {
+      "main": [
+        [
+          {
+            "node": "IF",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verificar URL da Imagem": {
+      "main": [
+        [
+          {
+            "node": "Preparar Sanity Mutation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Preparar Sanity Mutation": {
+      "main": [
+        [
+          {
+            "node": "Atualizar Lead no Sanity",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Atualizar Lead no Sanity": {
+      "main": [
+        [
+          {
+            "node": "Resumo da Operação",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Resumo da Operação": {
+      "main": [
+        [
+          {
+            "node": "Notificar Slack",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF": {
+      "main": [
+        [
+          {
+            "node": "Verificar URL da Imagem",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Limpeza Periódica": {
+      "main": [
+        [
+          {
+            "node": "Executar Limpeza",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "54b58a4c-6fca-4d3e-98e2-51a48e14d9ca",
+  "id": "13",
+  "meta": {
+    "instanceId": "36203ea1ce3cef713fa25999bd1662b3799b5891be0292129de5372f94d748a5"
+  },
+  "tags": [
+    {
+      "name": "replicate",
+      "createdAt": "2024-03-15T10:14:22.123Z"
+    },
+    {
+      "name": "imagens",
+      "createdAt": "2024-03-15T10:14:22.123Z"
+    },
+    {
+      "name": "sanity",
+      "createdAt": "2024-03-15T10:14:22.123Z"
+    }
+  ]
+}
