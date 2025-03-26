@@ -63,3 +63,13 @@ next-env.d.ts
 # Ferramentas de diagnóstico
 /tools/diagnostics/
 /scripts/test/
+
+
+# Sanity Studio
+/studio-rtocha/node_modules
+/studio-rtocha/dist
+/studio-rtocha/.sanity
+/studio-rtocha/.DS_Store
+/studio-rtocha/logs
+/studio-rtocha/*.log
+/studio-rtocha/scripts
