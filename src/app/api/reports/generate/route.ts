@@ -1,14 +1,30 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server'; // Import NextRequest
 import { sanityClient } from '@/lib/sanity/client';
-import { groq } from 'next-sanity';
+// @ts-ignore - Temporarily ignore type resolution issue for groq
+import { groq } from 'next-sanity'; 
 import { generatePersonalizedRecommendations, generateContextAnalysis } from '@/lib/ai/gemini';
 import { updateLead } from '@/lib/sanity/mutations';
 import { generateReportId } from '@/lib/utils/reportGenerator';
 import { ServiceData, Recommendation } from '@/lib/types';
 
+const SECRET_TOKEN = process.env.INTERNAL_API_SECRET; // Ler o token
+
 // Endpoint de API para geração assíncrona de relatórios
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) { // Usar NextRequest
   try {
+    // 1. Verificar o Secret Token
+    const authorizationHeader = request.headers.get('Authorization');
+    const receivedToken = authorizationHeader?.split('Bearer ')[1];
+
+    if (!SECRET_TOKEN || receivedToken !== SECRET_TOKEN) {
+      console.warn('⚠️ Tentativa de acesso não autorizado à API /generate');
+      return NextResponse.json(
+        { success: false, message: 'Acesso não autorizado' },
+        { status: 403 } // Forbidden
+      );
+    }
+
+    // 2. Continuar com a lógica existente...
     const { leadId } = await request.json();
 
     if (!leadId) {
@@ -334,4 +350,4 @@ async function generateReportAsync(leadId: string) {
       console.error('❌ Não foi possível atualizar o status para falha:', statusError);
     }
   }
-} 
+}

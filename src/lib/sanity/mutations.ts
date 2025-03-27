@@ -2,6 +2,8 @@ import { sanityClient } from './client';
 // import { v4 as uuidv4 } from 'uuid'; // Comentando importação não utilizada
 import { LeadData, ReportData } from '@/lib/types';
 
+const SECRET_TOKEN = process.env.INTERNAL_API_SECRET; // Ler o token
+
 // Criar um novo lead
 export async function createLead(leadData: LeadData) {
   try {
@@ -35,11 +37,19 @@ export async function createLead(leadData: LeadData) {
         
       console.log(`🔄 Iniciando geração de relatório via ${baseUrl}/api/reports/generate`);
       
+      // Adicionar headers na chamada fetch
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+      };
+      if (SECRET_TOKEN) {
+        headers['Authorization'] = `Bearer ${SECRET_TOKEN}`; // Adicionar o header
+      } else {
+         console.warn("⚠️ INTERNAL_API_SECRET não definido. Chamada para /generate não será autorizada se a API estiver protegida.");
+      }
+
       fetch(`${baseUrl}/api/reports/generate`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: headers, // Usar os headers definidos
         body: JSON.stringify({ 
           leadId: lead._id 
         }),
