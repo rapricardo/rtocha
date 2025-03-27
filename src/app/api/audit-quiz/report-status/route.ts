@@ -1,170 +1,94 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { reportStatusService } from '@/lib/services/reportStatus';
+// import { reportStatusService } from '@/lib/services/reportStatus'; // Removido
 import { sanityClient } from '@/lib/sanity/client';
-import { groq } from 'next-sanity';
+// @ts-ignore - Temporarily ignore type resolution issue for groq
+import { groq } from 'next-sanity'; // Reverted back again
+
+// Headers comuns para desabilitar cache
+const NO_CACHE_HEADERS = {
+  'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+  'Pragma': 'no-cache',
+  'Expires': '0'
+};
 
 export async function GET(request: NextRequest) {
   try {
-    // Extrair o reportRequestId da URL
+    // Extrair o leadId da URL
     const { searchParams } = new URL(request.url);
-    const reportRequestId = searchParams.get('reportRequestId');
-    const leadId = searchParams.get('leadId'); // Novo parâmetro para suportar o novo fluxo
+    const leadId = searchParams.get('leadId');
     
-    console.log(`📝 API /report-status: Verificando status para requestId: ${reportRequestId}, leadId: ${leadId}`);
+    console.log(`📝 API /report-status: Verificando status para leadId: ${leadId}`);
     
-    // Se temos um leadId, verificar diretamente no Sanity se há um relatório
-    if (leadId) {
-      console.log(`📝 Verificando relatório para leadId: ${leadId}`);
-      
-      try {
-        const leadReport = await sanityClient.fetch(groq`
-          *[_type == "report" && lead._ref == $leadId][0]{
-            _id,
-            "slug": slug.current,
-            reportId
-          }
-        `, { leadId });
-        
-        if (leadReport) {
-          console.log(`✅ Relatório encontrado para lead: ${leadId}`);
-          
-          return NextResponse.json(
-            {
-              success: true,
-              status: 'completed',
-              reportUrl: `/relatorios/${leadReport.slug || leadReport.reportId}`,
-              message: 'Seu relatório está pronto!'
-            },
-            {
-              headers: {
-                'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
-                'Pragma': 'no-cache',
-                'Expires': '0'
-              }
-            }
-          );
-        } else {
-          console.log(`📝 Nenhum relatório encontrado para lead: ${leadId}`);
-          
-          // Se não há relatório, informar que ainda está em processamento
-          return NextResponse.json(
-            {
-              success: true,
-              status: 'processing',
-              message: 'Seu relatório está sendo gerado...'
-            },
-            {
-              headers: {
-                'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
-                'Pragma': 'no-cache',
-                'Expires': '0'
-              }
-            }
-          );
-        }
-      } catch (error) {
-        console.error('❌ Erro ao verificar relatório no Sanity:', error);
-      }
-    }
-    if (!reportRequestId) {
-      console.log('❌ ID de solicitação não fornecido');
+    if (!leadId) {
+      console.log('❌ leadId não fornecido');
       return NextResponse.json(
-        { 
-          success: false, 
-          error: 'ID de solicitação não fornecido' 
-        },
-        { 
-          status: 400,
-          headers: {
-            'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
-            'Pragma': 'no-cache',
-            'Expires': '0'
-          } 
-        }
+        { success: false, error: 'leadId não fornecido' },
+        { status: 400, headers: NO_CACHE_HEADERS }
       );
     }
     
-    // Debug: Listar todos os status para depuração
-    const allStatuses = reportStatusService.debug();
-    console.log(`📊 Status disponíveis: ${allStatuses.length}`);
-    allStatuses.forEach(item => {
-      console.log(`- ${item.requestId}: ${item.status.status}`);
-    });
+    // Verificar diretamente no Sanity o status do lead e se há relatório associado
+    console.log(`📝 Buscando status e relatório para leadId: ${leadId}`);
     
-    // Verificar o status no serviço
-    const reportStatus = reportStatusService.get(reportRequestId);
-    
-    if (!reportStatus) {
-      console.log('❌ Status não encontrado para o ID fornecido:', reportRequestId);
-      return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Status não encontrado ou expirado',
-          debug: {
-            requestIdReceived: reportRequestId,
-            availableIds: allStatuses.map(s => s.requestId)
-          }
-        },
-        { 
-          status: 404,
-          headers: {
-            'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
-            'Pragma': 'no-cache',
-            'Expires': '0'
-          } 
+    const leadData = await sanityClient.fetch(groq`
+      *[_type == "lead" && _id == $leadId][0]{
+        _id,
+        reportStatus,
+        report->{
+          _id,
+          "slug": slug.current,
+          reportId
         }
+      }
+    `, { leadId });
+    
+    if (!leadData) {
+      console.log(`❌ Lead não encontrado: ${leadId}`);
+      return NextResponse.json(
+        { success: false, error: 'Lead não encontrado' },
+        { status: 404, headers: NO_CACHE_HEADERS }
       );
     }
     
-    // Construir a mensagem adequada ao status
-    let statusMessage = '';
-    switch (reportStatus.status) {
-      case 'processing':
-        statusMessage = 'Seu relatório está sendo gerado...';
-        break;
-      case 'completed':
-        statusMessage = 'Seu relatório está pronto!';
-        break;
-      case 'failed':
-        statusMessage = 'Ocorreu um erro ao gerar seu relatório. Por favor, tente novamente.';
-        break;
+    const reportStatus = leadData.reportStatus || { status: 'queued', message: 'Aguardando processamento' };
+    const associatedReport = leadData.report;
+    
+    console.log(`📝 Status do lead: ${reportStatus.status}, Relatório associado: ${associatedReport ? associatedReport._id : 'Nenhum'}`);
+    
+    // Construir a resposta com base no status do Sanity
+    let responsePayload: {
+      success: boolean;
+      status: string;
+      message: string;
+      reportUrl?: string;
+      error?: string;
+    } = {
+      success: true,
+      status: reportStatus.status,
+      message: reportStatus.message || 'Status desconhecido'
+    };
+    
+    // Se o status for 'completed', adicionar a URL do relatório
+    if (reportStatus.status === 'completed' && associatedReport) {
+      responsePayload.reportUrl = `/relatorios/${associatedReport.slug || associatedReport.reportId}`;
+      responsePayload.message = 'Seu relatório está pronto!';
+    } else if (reportStatus.status === 'failed') {
+      responsePayload.error = reportStatus.message || 'Falha na geração do relatório';
     }
     
-    console.log(`📝 Status atual: ${reportStatus.status}, URL: ${reportStatus.reportUrl || 'ainda não disponível'}`);
+    console.log(`✅ Retornando status: ${responsePayload.status}`);
     
-    return NextResponse.json(
-      {
-        success: true,
-        status: reportStatus.status,
-        reportUrl: reportStatus.reportUrl,
-        message: statusMessage,
-        error: reportStatus.error
-      },
-      {
-        headers: {
-          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
-          'Pragma': 'no-cache',
-          'Expires': '0'
-        }
-      }
-    );
+    return NextResponse.json(responsePayload, { headers: NO_CACHE_HEADERS });
     
   } catch (error) {
     console.error('❌ Erro ao verificar status do relatório:', error);
     return NextResponse.json(
       { 
         success: false, 
-        error: 'Falha ao verificar status',
+        error: 'Falha ao verificar status do relatório',
         errorDetails: error instanceof Error ? error.message : String(error)
       },
-      { 
-        status: 500,
-        headers: {
-          'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
-          'Pragma': 'no-cache',
-          'Expires': '0'
-        } 
-      }
+      { status: 500, headers: NO_CACHE_HEADERS }
     );
   }
 }

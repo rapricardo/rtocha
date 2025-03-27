@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { updateLead } from '@/lib/sanity/mutations';
 import { generateReportId } from '@/lib/utils/reportGenerator';
-import { v4 as uuidv4 } from 'uuid';
-import { reportStatusService, ReportStatus } from '@/lib/services/reportStatus';
+// import { v4 as uuidv4 } from 'uuid'; // Removido - não mais necessário
+// import { reportStatusService, ReportStatus } from '@/lib/services/reportStatus'; // Removido - não mais necessário
 import { sanityClient } from '@/lib/sanity/client'; 
-import { generateReport } from '@/lib/services/reports/reportGenerator';
+// import { generateReport } from '@/lib/services/reports/reportGenerator'; // Comentado - Geração é iniciada por /api/reports/generate
 
 export async function POST(request: NextRequest) {
   try {
@@ -20,9 +20,9 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    // Gerar ID único para esta solicitação
-    const reportRequestId = uuidv4();
-    console.log('📝 ID de solicitação gerado:', reportRequestId);
+    // Remover geração de ID de solicitação - não mais necessário
+    // const reportRequestId = uuidv4();
+    // console.log('📝 ID de solicitação gerado:', reportRequestId);
     
     // Verificar se é um ID simulado
     if (leadId.startsWith('sim_')) {
@@ -42,10 +42,10 @@ export async function POST(request: NextRequest) {
         simulatedMode: true,
         reportId: simulatedReportId,
         reportUrl: reportUrl,
-        reportRequestId: null // Não precisamos de polling em modo de simulação
+        // reportRequestId: null // Removido
       });
     }
-    
+
     // Verificar se o token está configurado
     if (!process.env.SANITY_API_TOKEN) {
       console.log('⚠️ SANITY_API_TOKEN não está configurado. Usando modo de simulação.');
@@ -61,10 +61,10 @@ export async function POST(request: NextRequest) {
         simulatedMode: true,
         reportId: simulatedReportId,
         reportUrl: reportUrl,
-        reportRequestId: null // Não precisamos de polling em modo de simulação
+        // reportRequestId: null // Removido
       });
     }
-    
+
     // ADICIONADO: Verificar se já existe um relatório para este lead
     console.log(`📝 Verificando se já existe relatório para lead: ${leadId}`);
     try {
@@ -99,48 +99,32 @@ export async function POST(request: NextRequest) {
       reportRequested: true,
       reportRequestedAt: new Date().toISOString()
     });
-    
-    // Registrar o status inicial do relatório
-    const initialStatus: ReportStatus = {
-      status: 'processing',
-      startTime: new Date().toISOString(),
-      leadId: leadId
-    };
-    
-    reportStatusService.set(reportRequestId, initialStatus);
-    
-    // Debug: Listar todos os status para depuração
-    const allStatuses = reportStatusService.debug();
-    console.log(`📊 Status atuais (após adição): ${allStatuses.length}`);
-    allStatuses.forEach(item => {
-      console.log(`- ${item.requestId}: ${item.status.status}`);
-    });
-    
-    // NOTA: A geração do relatório AGORA será iniciada do cliente,
-    // usando o componente ReportStatusIndicator
-    console.log('✅ Solicitação de relatório iniciada com sucesso, retornando requestId:', reportRequestId);
-    return NextResponse.json({ 
+
+    // Remover registro de status inicial em memória - não mais necessário
+    // const initialStatus: ReportStatus = { ... };
+    // reportStatusService.set(reportRequestId, initialStatus);
+    // Remover debug do serviço em memória
+    // const allStatuses = reportStatusService.debug(); ...
+
+    // A geração do relatório é iniciada pela API /submit -> /generate
+    // Esta API apenas marca a solicitação no lead.
+    console.log('✅ Solicitação de relatório marcada no lead com sucesso:', leadId);
+    return NextResponse.json({
       success: true,
-      message: "Seu relatório está sendo gerado",
-      reportRequestId: reportRequestId
+      message: "Solicitação de relatório registrada. A geração já foi iniciada ou ocorrerá em breve."
+      // Remover reportRequestId da resposta
     });
   } catch (error) {
-    console.error('❌ Erro ao solicitar relatório:', error);
-    
-    // Mesmo em caso de erro, fornecer uma URL simulada para que o usuário tenha alguma experiência
-    const fallbackReportId = generateReportId();
-    
+    // Ajustar resposta de erro - não retornar URL simulada
+    console.error('❌ Erro ao processar solicitação de relatório:', error);
+
     return NextResponse.json(
-      { 
-        success: true,
-        message: "Ocorreu um erro, mas você ainda pode acessar um relatório de exemplo",
-        reportId: fallbackReportId,
-        reportUrl: `/relatorios/${fallbackReportId}`,
-        reportRequestId: null // Não precisamos de polling em modo de simulação
+      {
+        success: false,
+        error: 'Ocorreu um erro ao registrar sua solicitação de relatório.',
+        details: error instanceof Error ? error.message : 'Erro desconhecido'
       },
-      { status: 200 }
+      { status: 500 }
     );
   }
 }
-
-

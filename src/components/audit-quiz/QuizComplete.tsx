@@ -15,13 +15,13 @@ interface QuizCompleteProps {
 export default function QuizComplete({
   preview,
   isLoading,
-  onRequestFullReport,
+  onRequestFullReport, // Note: This prop might become simpler or unnecessary after refactor
   error
 }: QuizCompleteProps) {
-  // Estado adicionado para gerenciar polling e status de relatório
-  const [reportRequestId, setReportRequestId] = useState<string | null>(null);
+  // Estado para gerenciar polling e status de relatório (sem reportRequestId)
+  // const [reportRequestId, setReportRequestId] = useState<string | null>(null); // Removido
   const [pollingActive, setPollingActive] = useState(false);
-  const [reportUrl, setReportUrl] = useState<string | null>(null);
+  const [reportUrl, setReportUrl] = useState<string | null>(preview?.reportUrl || null); // Initialize with preview URL if available
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [loadingReport, setLoadingReport] = useState(false);
   const [reportError, setReportError] = useState<string | null>(null);
@@ -29,10 +29,11 @@ export default function QuizComplete({
 
   // Logs de depuração para o componente QuizComplete
   console.log('[DEBUG QuizComplete] Renderizando componente');
+  console.log('[DEBUG QuizComplete] Renderizando componente');
   console.log('[DEBUG QuizComplete] preview:', preview);
   console.log('[DEBUG QuizComplete] isLoading:', isLoading);
   console.log('[DEBUG QuizComplete] error:', error);
-  console.log('[DEBUG QuizComplete] reportRequestId:', reportRequestId);
+  // console.log('[DEBUG QuizComplete] reportRequestId:', reportRequestId); // Removido
   console.log('[DEBUG QuizComplete] pollingActive:', pollingActive);
   console.log('[DEBUG QuizComplete] reportUrl:', reportUrl);
   console.log('[DEBUG QuizComplete] pollingAttempts:', pollingAttempts);
@@ -45,23 +46,32 @@ export default function QuizComplete({
     }
   };
 
-  // Effect para iniciar o polling quando temos um requestId
+  // Effect para iniciar o polling quando pollingActive é true e temos um leadId
   useEffect(() => {
-    if (!reportRequestId || !pollingActive) return;
+    // Só inicia o polling se estiver ativo e tivermos um leadId no preview
+    if (!pollingActive || !preview?.leadId || reportUrl) return; 
     
-    console.log('[DEBUG QuizComplete] Iniciando polling para requestId:', reportRequestId);
+    console.log(`[DEBUG QuizComplete] Iniciando polling para leadId: ${preview.leadId}`);
     
-    // Usamos uma variável local para contar tentativas em vez do estado
+    // Usamos uma variável local para contar tentativas
     let attemptCount = 0;
     
     // Função para verificar o status
     const checkReportStatus = async () => {
+      // Garantir que ainda temos o leadId
+      if (!preview?.leadId) {
+        console.warn('[DEBUG QuizComplete] Polling interrompido: leadId não encontrado no preview.');
+        setPollingActive(false);
+        return true; // Parar polling
+      }
+      
       try {
         // Usamos a variável local para log e verificação
         attemptCount++;
-        console.log(`[DEBUG QuizComplete] Verificando status: tentativa ${attemptCount}`);
+        console.log(`[DEBUG QuizComplete] Verificando status: tentativa ${attemptCount} para leadId ${preview.leadId}`);
         
-        const url = `/api/audit-quiz/report-status?reportRequestId=${encodeURIComponent(reportRequestId)}`;
+        // Chamar API com leadId
+        const url = `/api/audit-quiz/report-status?leadId=${encodeURIComponent(preview.leadId)}`;
         console.log('[DEBUG QuizComplete] URL de verificação:', url);
         
         const response = await fetch(url);
@@ -111,13 +121,13 @@ export default function QuizComplete({
         }
         
         // Verificar limite baseado na variável local
-        if (attemptCount > 20) {
+        if (attemptCount > 20) { // Aumentado limite para 20 tentativas (aprox 1 minuto)
           console.log('[DEBUG QuizComplete] Número máximo de tentativas excedido');
           setReportError('processing-timeout'); // Código especial para timeout de processamento
           setPollingActive(false);
-          return true;
+          return true; // Parar polling
         }
-        
+
         return false; // Continuar polling
       } catch (error) {
         console.error('[DEBUG QuizComplete] Erro ao verificar status:', error);
@@ -150,40 +160,49 @@ export default function QuizComplete({
     return () => {
       clearInterval(pollingInterval);
     };
-  }, [reportRequestId, pollingActive, preview]); // Removemos pollingAttempts das dependências
+  // Dependências: pollingActive e leadId (indiretamente via preview)
+  }, [pollingActive, preview?.leadId, reportUrl]); 
 
-  // Função para lidar com a solicitação de relatório completo
+  // Função para lidar com a solicitação de relatório completo (simplificada)
   const handleRequestReport = async () => {
     console.log('[DEBUG QuizComplete] Iniciando solicitação de relatório completo');
+    if (!preview?.leadId || !preview?.email) {
+      setReportError("Não foi possível solicitar o relatório: dados do lead ausentes.");
+      return;
+    }
+    
     setLoadingReport(true);
     setReportError(null);
-    setPollingAttempts(0);
+    setPollingAttempts(0); // Resetar tentativas
     
     try {
-      // Chamar a função de solicitação passada como prop
-      const result = await onRequestFullReport();
-      console.log('[DEBUG QuizComplete] Resposta da solicitação:', result);
+      // Chamar a API /request-report (que agora não retorna requestId)
+      const response = await fetch('/api/audit-quiz/request-report', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: preview.email, leadId: preview.leadId }),
+      });
       
-      // Verificar primeiro se um relatório já existe (verificando o preview atualizado)
-      if (preview?.reportExists || preview?.reportUrl) {
-        console.log('[DEBUG QuizComplete] Relatório existente encontrado:', preview.reportUrl);
-        setReportUrl(preview.reportUrl);
-        
-        // Atualizar o preview para mostrar que o relatório está pronto
-        if (preview) {
-          preview.reportRequested = true;
-        }
-        
-        // Armazenar o ID do lead quando um relatório existente é encontrado
-        if (preview?.leadId) {
-          storeLeadId(preview.leadId);
-        }
-      } else if (result) {
-        // Se recebemos um requestId, precisamos iniciar polling
-        setReportRequestId(result);
+      const data = await response.json();
+      console.log('[DEBUG QuizComplete] Resposta da solicitação /request-report:', data);
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Falha ao solicitar relatório');
+      }
+
+      // Se a API indicou que um relatório já existe
+      if (data.reportExists && data.reportUrl) {
+        console.log('[DEBUG QuizComplete] Relatório existente encontrado via API:', data.reportUrl);
+        setReportUrl(data.reportUrl);
+        if (preview) preview.reportRequested = true; // Marcar como solicitado no preview
+        storeLeadId(preview.leadId); // Garantir que o leadId está armazenado
+      } else {
+        // Se não existe, iniciar o polling
+        console.log('[DEBUG QuizComplete] Iniciando polling após solicitação.');
         setPollingActive(true);
         setStatusMessage('Seu relatório está sendo gerado...');
       }
+      
     } catch (err) {
       console.error('[DEBUG QuizComplete] Erro ao solicitar relatório:', err);
       const errorMessage = err instanceof Error ? err.message : 'Ocorreu um erro ao solicitar relatório completo';
@@ -276,7 +295,7 @@ export default function QuizComplete({
       </div>
 
       {/* Seção de relatório considerando estados de polling e URL */}
-      {console.log('[DEBUG QuizComplete] Estado atual para renderização:', {
+      {/* {console.log('[DEBUG QuizComplete] Estado atual para renderização:', { // Removido console.log do JSX
         preview: preview?.reportRequested,
         reportUrl,
         pollingActive,
