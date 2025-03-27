@@ -188,26 +188,9 @@ export default async function ReportPage({ params }: { params: Promise<{ slug: s
   }
 
   return (
-    <main className="min-h-screen font-[family-name:var(--font-convergence)]">
-      {/* Header / Navegação */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-white/90 backdrop-blur-sm shadow-sm">
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <div className="flex items-center">
-            <Image 
-              src="/images/logo-ricardotocha-vermelho.webp"
-              alt="Ricardo Tocha Logo"
-              width={150}
-              height={40}
-              className="h-10 w-auto"
-            />
-          </div>
-          <div>
-            <Button href="/" size="sm" variant="primary">Voltar para o site</Button>
-          </div>
-        </div>
-      </header>
-
-      <div className="pt-32 pb-20">
+    <>
+      {/* Ajustado pt-32 para pt-12 para compensar o pt-20 do layout global */}
+      <div className="pt-12 pb-20"> 
         <div className="container mx-auto px-4">
           {/* Notificação de simulação */}
           {isSimulated && (
@@ -353,26 +336,6 @@ export default async function ReportPage({ params }: { params: Promise<{ slug: s
           </div>
         </div>
       </div>
-
-      {/* Rodapé simples */}
-      <footer className="bg-gray-900 text-white py-8">
-        <div className="container mx-auto px-4 text-center">
-          <p className="mb-4">
-            © {new Date().getFullYear()} Ricardo Tocha | Todos os direitos reservados
-          </p>
-          <div className="flex justify-center space-x-4">
-            <a href="https://linkedin.com/in/ricardotocha" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white">
-              LinkedIn
-            </a>
-            <a href="https://twitter.com/ricardotocha" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white">
-              Twitter
-            </a>
-            <a href="https://instagram.com/ricardotocha" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white">
-              Instagram
-            </a>
-          </div>
-        </div>
-      </footer>
-    </main>
+    </>
   )
 }

@@ -1,10 +1,16 @@
 import { PortableText } from "@portabletext/react";
 import { PortableTextBlock } from "@portabletext/types";
-import { portableTextComponents } from "@/lib/portable-text/components.tsx";
+import { portableTextComponents } from "@/lib/portable-text/components";
+
+interface BenefitItem {
+  _key?: string;
+  benefit: string;
+  description?: string;
+}
 
 interface ServiceBenefitsProps {
   benefitsHTML?: PortableTextBlock[];
-  benefitsList?: string[];
+  benefitsList?: BenefitItem[];
 }
 
 export default function ServiceBenefits({ benefitsHTML, benefitsList }: ServiceBenefitsProps) {

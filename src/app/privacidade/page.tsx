@@ -1,7 +1,4 @@
-import Image from "next/image";
 import Link from "next/link";
-import Header from "@/components/layout/Header";
-import Footer from "@/components/layout/Footer";
 
 export const metadata = {
   title: "Política de Privacidade | Ricardo Tocha",
@@ -10,12 +7,10 @@ export const metadata = {
 
 export default function PrivacyPolicyPage() {
   return (
-    <main className="min-h-screen font-[family-name:var(--font-convergence)]">
-      {/* Header / Navegação */}
-      <Header />
-
+    <>
       {/* Conteúdo */}
-      <div className="pt-28 pb-20">
+      {/* Ajustado pt-28 para pt-8 para compensar o pt-20 do layout global */}
+      <div className="pt-8 pb-20"> 
         <div className="container mx-auto px-4">
           <div className="max-w-4xl mx-auto bg-white rounded-xl shadow-sm p-8">
             <h1 className="text-3xl md:text-4xl font-bold mb-8 text-[#d32b36]">Política de Privacidade</h1>
@@ -144,9 +139,6 @@ export default function PrivacyPolicyPage() {
           </div>
         </div>
       </div>
-
-      {/* Footer */}
-      <Footer />
-    </main>
+    </>
   );
 }
