@@ -193,8 +193,8 @@ export const leadType = defineType({
       group: 'company'
     }),
     defineField({
-      name: 'usesMarketingAutomation',
-      title: 'Usa Automação de Marketing',
+      name: 'usesAutomation',
+      title: 'Usa Automação',
       type: 'string',
       options: {
         list: [
@@ -395,20 +395,7 @@ export const leadType = defineType({
       type: 'datetime',
       group: 'engagement'
     }),
-    defineField({
-      name: 'usesAutomation',
-      title: 'Usa Automação',
-      type: 'string',
-      options: {
-        list: [
-          {title: 'Sim, integrada com vendas', value: 'integrated'},
-          {title: 'Sim, mas isolada de vendas', value: 'isolated'},
-          {title: 'Não, mas planejamos implementar', value: 'planning'},
-          {title: 'Não usamos', value: 'no_use'},
-        ]
-      },
-      group: 'company'
-    }),
+    
     // Campos para personalização
     defineField({
       name: 'customImages',
