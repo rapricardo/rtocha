@@ -1,14 +1,41 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createLead } from '@/lib/sanity/mutations';
 import { getRecommendedService } from '@/lib/matching/serviceRecommender';
+import { handleSimulationMode } from '@/lib/utils/simulation'; // Importar helper
 
 export async function POST(request: NextRequest) {
   try {
     console.log('📝 API /audit-quiz/submit: Processando requisição...');
     const data = await request.json();
     console.log('📝 Dados recebidos:', data);
+
+    // Verificar modo de simulação PRIMEIRO (passando dados relevantes se necessário)
+    // A API /submit não usa leadId para simulação, apenas a falta do token Sanity
+    const simulationResponse = handleSimulationMode({ /* leadId: null */ }); 
+    if (simulationResponse) {
+      // A API /submit precisa retornar um 'preview' simulado.
+      // Vamos ajustar a resposta simulada para incluir isso.
+      const simulatedLeadId = 'sim_' + Math.random().toString(36).substring(2, 10);
+      const recommendedService = await getRecommendedService(data); // Ainda precisamos disso para o preview
+      const preview = {
+        leadId: simulatedLeadId,
+        email: data.email,
+        recommendedService: recommendedService.name,
+        problemSolved: recommendedService.problem,
+        benefit: recommendedService.benefit,
+        additionalServices: 2, // Valor fixo para simulação
+        reportRequested: false,
+        simulatedMode: true
+      };
+      // Retorna a resposta JSON original da função handleSimulationMode, mas adiciona o preview
+      const originalJsonResponse = await simulationResponse.json();
+      return NextResponse.json({
+        ...originalJsonResponse,
+        preview: preview // Adiciona o preview simulado
+      });
+    }
     
-    // Validação básica
+    // Validação básica (após checar simulação)
     if (!data.name || !data.email || !data.companyName) {
       console.log('❌ Validação falhou: dados incompletos');
       return NextResponse.json(
@@ -17,43 +44,10 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    // Verificar se o token está configurado
-    if (!process.env.SANITY_API_TOKEN) {
-      console.log('⚠️ SANITY_API_TOKEN não está configurado. Usando modo de simulação.');
-      
-      // Simular a criação do lead (modo de demonstração quando o token não está configurado)
-      console.log('📝 Simulando criação de lead com dados:', data);
-      
-      // Gerar ID simulado
-      const simulatedLeadId = 'sim_' + Math.random().toString(36).substring(2, 10);
-      console.log('✅ Lead simulado criado com ID:', simulatedLeadId);
-      
-      // Gerar serviço recomendado
-      console.log('📝 Gerando recomendação de serviço...');
-      const recommendedService = await getRecommendedService(data);
-      console.log('✅ Serviço recomendado:', recommendedService.name);
-      
-      // Gerar preview da mini-auditoria
-      const preview = {
-        leadId: simulatedLeadId,
-        email: data.email,
-        recommendedService: recommendedService.name,
-        problemSolved: recommendedService.problem,
-        benefit: recommendedService.benefit,
-        additionalServices: 2,
-        reportRequested: false,
-        simulatedMode: true
-      };
-      
-      console.log('✅ API /audit-quiz/submit: Processo simulado concluído com sucesso');
-      return NextResponse.json({ 
-        success: true, 
-        preview,
-        message: 'MODO DE SIMULAÇÃO: Token do Sanity não configurado. Os dados não foram salvos.'
-      });
-    }
+    // Remover bloco de verificação de token - agora tratado por handleSimulationMode
+    // if (!process.env.SANITY_API_TOKEN) { ... }
     
-    // Código normal para quando o token está configurado
+    // Código normal (token está configurado)
     // Criar lead no Sanity
     console.log('📝 Criando lead no Sanity...');
     const leadId = await createLead({

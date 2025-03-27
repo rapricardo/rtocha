@@ -1,17 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { updateLead } from '@/lib/sanity/mutations';
-import { generateReportId } from '@/lib/utils/reportGenerator';
-// import { v4 as uuidv4 } from 'uuid'; // Removido - não mais necessário
-// import { reportStatusService, ReportStatus } from '@/lib/services/reportStatus'; // Removido - não mais necessário
+// import { generateReportId } from '@/lib/utils/reportGenerator'; // Não mais necessário aqui
+// import { v4 as uuidv4 } from 'uuid'; // Removido
+// import { reportStatusService, ReportStatus } from '@/lib/services/reportStatus'; // Removido
 import { sanityClient } from '@/lib/sanity/client'; 
-// import { generateReport } from '@/lib/services/reports/reportGenerator'; // Comentado - Geração é iniciada por /api/reports/generate
+// import { generateReport } from '@/lib/services/reports/reportGenerator'; // Comentado
+import { handleSimulationMode } from '@/lib/utils/simulation'; // Importar helper
 
 export async function POST(request: NextRequest) {
   try {
     console.log('📝 API /request-report: Processando solicitação...');
     const { email: userEmail, leadId } = await request.json();
-    
-    // Validação básica
+
+    // Verificar modo de simulação PRIMEIRO
+    const simulationResponse = handleSimulationMode({ leadId });
+    if (simulationResponse) {
+      return simulationResponse;
+    }
+
+    // Validação básica (após checar simulação)
     if (!userEmail || !leadId) {
       console.log('❌ Validação falhou: email ou leadId ausente');
       return NextResponse.json(
@@ -20,52 +27,11 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    // Remover geração de ID de solicitação - não mais necessário
-    // const reportRequestId = uuidv4();
-    // console.log('📝 ID de solicitação gerado:', reportRequestId);
-    
-    // Verificar se é um ID simulado
-    if (leadId.startsWith('sim_')) {
-      console.log('⚠️ Detectado ID simulado. Usando modo de simulação.');
-      
-      // Simular a solicitação do relatório
-      console.log('📝 Simulando solicitação de relatório para o email:', userEmail);
-      
-      // Gerar um ID de relatório simulado 
-      const simulatedReportId = generateReportId();
-      const reportUrl = `/relatorios/${simulatedReportId}`;
-      
-      console.log('✅ Solicitação de relatório simulada com sucesso');
-      return NextResponse.json({ 
-        success: true,
-        message: "MODO DE SIMULAÇÃO: Seu relatório está disponível para visualização",
-        simulatedMode: true,
-        reportId: simulatedReportId,
-        reportUrl: reportUrl,
-        // reportRequestId: null // Removido
-      });
-    }
+    // Remover blocos de verificação de simulação - agora tratados por handleSimulationMode
+    // if (leadId.startsWith('sim_')) { ... }
+    // if (!process.env.SANITY_API_TOKEN) { ... }
 
-    // Verificar se o token está configurado
-    if (!process.env.SANITY_API_TOKEN) {
-      console.log('⚠️ SANITY_API_TOKEN não está configurado. Usando modo de simulação.');
-      
-      // Gerar um ID de relatório simulado 
-      const simulatedReportId = generateReportId();
-      const reportUrl = `/relatorios/${simulatedReportId}`;
-      
-      console.log('✅ Solicitação de relatório simulada com sucesso');
-      return NextResponse.json({ 
-        success: true,
-        message: "MODO DE SIMULAÇÃO: Seu relatório está disponível para visualização",
-        simulatedMode: true,
-        reportId: simulatedReportId,
-        reportUrl: reportUrl,
-        // reportRequestId: null // Removido
-      });
-    }
-
-    // ADICIONADO: Verificar se já existe um relatório para este lead
+    // Verificar se já existe um relatório para este lead (lógica mantida)
     console.log(`📝 Verificando se já existe relatório para lead: ${leadId}`);
     try {
       const existingReport = await sanityClient.fetch(`
