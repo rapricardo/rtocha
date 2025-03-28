@@ -48,6 +48,9 @@ export async function createLead(leadData: LeadData) {
          console.warn("⚠️ [mutations.ts] INTERNAL_API_SECRET não definido. Chamada para /generate não será autorizada.");
       }
 
+      // Log before fetch
+      console.log(`[mutations.ts] PREPARANDO FETCH para ${baseUrl}/api/reports/generate com headers:`, JSON.stringify(headers));
+
       fetch(`${baseUrl}/api/reports/generate`, {
         method: 'POST',
         headers: headers, // Usar os headers definidos
@@ -62,7 +65,8 @@ export async function createLead(leadData: LeadData) {
       }).then(data => {
         console.log('✅ Resposta da API de geração:', data);
       }).catch(err => {
-        console.error('⚠️ Erro ao iniciar geração de relatório (não bloqueante):', err);
+        // Log mais detalhado do erro
+        console.error('⚠️ Erro detalhado ao iniciar geração (não bloqueante):', JSON.stringify(err, Object.getOwnPropertyNames(err)));
         // Não lançamos o erro aqui para não bloquear a criação do lead
       });
       
