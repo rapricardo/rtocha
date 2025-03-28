@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 // import { reportStatusService } from '@/lib/services/reportStatus'; // Removido
 import { sanityClient } from '@/lib/sanity/client';
-// @ts-ignore - Temporarily ignore type resolution issue for groq
-import { groq } from 'next-sanity'; // Reverted back again
+// @ts-expect-error - Temporarily ignore type resolution issue for groq (expecting an error)
+import { groq } from 'next-sanity'; 
 
 // Headers comuns para desabilitar cache
 const NO_CACHE_HEADERS = {
@@ -56,7 +56,7 @@ export async function GET(request: NextRequest) {
     console.log(`📝 Status do lead: ${reportStatus.status}, Relatório associado: ${associatedReport ? associatedReport._id : 'Nenhum'}`);
     
     // Construir a resposta com base no status do Sanity
-    let responsePayload: {
+    const responsePayload: { // Changed let to const
       success: boolean;
       status: string;
       message: string;

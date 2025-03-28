@@ -27,6 +27,7 @@ O projeto "Automação Inteligente para Marketing e Vendas" de Ricardo Tocha é 
 - **Integração WhatsApp**: Evolution API
 - **IA para Conteúdo**: Gemini (Google)
 - **Agentes Inteligentes**: Relevance AI e Relay AI
+- **Analytics**: Vercel Analytics
 
 ### 2.2 Arquitetura do Sistema
 
@@ -54,10 +55,10 @@ Principais schemas:
 - **Post**: Conteúdo do blog
 - **Author**: Autores de conteúdo
 - **Category**: Categorização de conteúdo
-- **Lead**: Informações de prospects, incluindo segmento/indústria e campos de personalização
-- **Service**: Serviços oferecidos com campo `howItWorksSteps` estruturado para visualização de etapas do fluxo de automação
-- **Report**: Relatórios de auditoria
-- **Personalization**: Elementos personalizados para diferentes segmentos e contextos
+- **Lead**: Informações de prospects, incluindo `reportStatus` e campos de personalização
+- **Service**: Serviços oferecidos com campo `howItWorksSteps` estruturado
+- **Report**: Relatórios de auditoria com campos de analytics (`views`, `lastViewedAt`, `callToActionClicked`)
+- **Personalization**: Elementos personalizados
 - **Callout**: Componentes de destaque
 
 ## 3. Funcionalidades Implementadas
@@ -66,22 +67,24 @@ Principais schemas:
 - Interface interativa para coleta de dados do lead
 - Processamento de respostas e categorização
 - Geração de insights preliminares
+- Mapeamento de todos os campos para o Sanity verificado
 
 ### 3.2 Sistema Assíncrono de Geração de Relatórios
 - Solução para o problema de timeout no ambiente Vercel
 - Verificação de relatórios existentes
-- Sistema de polling para status
+- Sistema de polling refatorado para usar Sanity como fonte da verdade (status persistente)
 - Feedback visual durante processamento
+- Otimização: Chamadas à IA paralelizadas (`Promise.all`)
+- Segurança: API `/generate` protegida por secret token
 
 ### 3.3 Blog Estruturado
 - Estrutura de dados para conteúdo rica e detalhada
 - Suporte a categorização e tags
 - Campos de SEO otimizados
 
-### 3.4 Páginas Institucionais
-- Home
-- Sobre
-- Contato
+### 3.4 Páginas Institucionais e Layout
+- Home, Sobre, Contato, Privacidade, Termos
+- Layout global com Header/Footer refatorado
 
 ### 3.5 Personalização para Leads Retornantes
 - Sistema de identificação e reconhecimento de leads retornantes implementado via hook `useReturningLead`
@@ -91,28 +94,27 @@ Principais schemas:
 
 ### 3.6 Páginas de Serviço/Produto
 - Implementadas páginas dinâmicas em `/solucoes/[slug]` com estrutura modular
-- Componentes especializados para diferentes seções (Cabeçalho, Benefícios, Como Funciona, etc.)
-- Visualização avançada de fluxos de automação com layout alternado esquerda/direita
-- Design responsivo com conectores visuais entre passos do fluxo
-- Renderização condicional para seções com conteúdo
-- Sistema de personalização que identifica serviços recomendados para leads retornantes
-- Indicadores visuais para serviços recomendados na auditoria
+- Componentes especializados para diferentes seções
+- Visualização avançada de fluxos de automação (`howItWorksSteps`)
+- Design responsivo com conectores visuais
+- Renderização condicional
+- Sistema de personalização (identificação de serviços recomendados)
+- Indicadores visuais para serviços recomendados
 - Navegação entre serviços relacionados
 
 ### 3.7 API de Leads
-- Endpoints REST para acesso programático aos dados de leads armazenados no Sanity
-- Autenticação Basic Auth para segurança dos dados sensíveis
-- Suporte a filtragem por data de atualização e personalização dos dados retornados
-- Integração com Redis para cache de leads, otimizando o uso em agentes de WhatsApp e outros serviços
-- Dois endpoints principais implementados:
-  - `/api/leads/export`: Consulta completa de leads com opções de filtragem
-  - `/api/leads/get-by-id`: Consulta específica de um lead por ID
+- Endpoints REST (`/export`, `/get-by-id`) com Basic Auth
+- Filtragem e personalização de dados
+- Integração com Redis para cache
+
+### 3.8 Analytics Básico
+- Integração com Vercel Analytics (Page Views, Web Vitals)
+- Rastreamento de eventos customizados chave: `Quiz Submitted`, `Report Requested`, `Report Viewed`, `Report Scrolled`, `Report CTA Clicked`
 
 ## 4. Funcionalidades em Desenvolvimento/Planejadas
 
 ### 4.1 Melhorias nas Páginas de Serviço
-- ✅ Visualização de fluxos de automação com layout alternado e conectores visuais
-- Animações e interatividade adicional para a visualização de fluxos (expansão de detalhes, etc.)
+- Animações e interatividade adicional para a visualização de fluxos
 - Integração com imagens geradas por IA (via Replicate API)
 - Personalização por segmento/indústria
 - Calculadoras de ROI específicas por serviço
@@ -131,7 +133,7 @@ Principais schemas:
 - Métricas de conversão e ajustes
 
 ### 4.4 Assistente via WhatsApp
-- Chatbot conversacional para qualificação
+- Chatbot conversacional para qualificação (n8n + Evolution API)
 - Entregáveis personalizados automatizados
 - Agendamento de reuniões
 
@@ -140,15 +142,16 @@ Principais schemas:
 | Módulo | Estado | Próximas Etapas |
 |--------|--------|-----------------|
 | **Quiz de Diagnóstico** | ✅ Implementado | Otimização de UX |
-| **Geração de Relatórios** | ✅ Implementado | Melhorar persistência |
+| **Geração de Relatórios** | ✅ Refatorado | Implementar notificação de falha |
 | **Blog** | 🟡 Parcial | Implementar webhooks |
-| **Personalização** | ✅ Implementado | Expandir personalização |
-| **Páginas de Serviço** | ✅ Implementado | Adicionar calculadoras de ROI e conteúdo completo |
-| **WhatsApp** | ✅ Implementado | Configurar Evolution API |
-| **Redes Sociais** | ✅ Implementado | Configurar webhooks n8n |
+| **Personalização** | ✅ Implementado | Otimizar velocidade de carregamento? Expandir? |
+| **Páginas de Serviço** | ✅ Implementado | Adicionar calculadoras ROI, testemunhos |
+| **WhatsApp** | 🟡 Parcial | Configurar/Testar fluxos n8n |
+| **Redes Sociais** | 🟡 Parcial | Configurar webhooks n8n |
 | **Email Marketing** | 🔴 Não iniciado | Definir fluxos e triggers |
-| **API de Leads** | ✅ Implementado | Expandir endpoints e otimizar cache Redis |
-| **Visualização de Fluxos** | ✅ Implementado | Adicionar dados estruturados a todos os serviços |
+| **API de Leads** | ✅ Implementado | Expandir endpoints? Otimizar cache? |
+| **Visualização de Fluxos** | ✅ Implementado | - |
+| **Analytics** | 🟡 Parcial | Expandir eventos rastreados |
 
 ## 6. Estrutura de Arquivos do Projeto
 
@@ -161,8 +164,10 @@ Principais schemas:
       /submit
       /request-report
       /report-status
-      /generate-report
+    /reports
+      /generate # (Endpoint interno protegido)
   /mini-auditoria
+  /obrigado
   /blog
   /solucoes
     /page.tsx
@@ -174,54 +179,87 @@ Principais schemas:
   /audit-quiz
     AuditQuiz.tsx
     QuizComplete.tsx
+    QuizProgress.tsx
+    QuizQuestion.tsx
   /layout
-  /ui
+    Header.tsx
+    Footer.tsx
+  /ui # (Considerar mover Button, SectionTitle, etc. para cá)
+    Button.tsx
+    SectionTitle.tsx
+    ServiceCard.tsx
+    MobileMenu.tsx
   /blog
   /services
     ServiceHeader.tsx
     ServiceBenefits.tsx
     ServiceHowItWorks.tsx
-    AutomationFlowSteps.tsx
+    # AutomationFlowSteps.tsx (Existe? Ou faz parte de HowItWorks?)
     ServiceRequirements.tsx
     ServiceMetrics.tsx
+    ServiceCTA.tsx
     PersonalizedServiceBanner.tsx
-    RelatedServices.tsx
+    PersonalizedServiceWrapper.tsx
+    # RelatedServices.tsx (Existe?)
   /personalization
     WelcomeBackBanner.tsx
+    WelcomeBackWrapper.tsx
+    PersonalizedImage.tsx
+    PersonalizedWelcomeBlock.tsx
+    RecommendedServices.tsx
+  /reports
+    ReportCTAButton.tsx
+  AnalyticsTracker.tsx
+  AnimatedFacts.tsx
+  ReportStatusIndicator.tsx
 
 /lib
   /services
-    reportStatus.ts
     serviceQueries.ts
     serviceUtils.ts
+    imageUtils.ts
+    /reports
+      reportGenerator.ts
   /hooks
     useReturningLead.ts
   /portable-text
     components.tsx
   /ai
     gemini.ts
+  /matching
+    serviceRecommender.ts
   /sanity
+    client.ts
+    image.ts
+    mutations.ts
+    queries.ts
+    utils.ts
+  /utils
+    reportGenerator.ts
+    simulation.ts
   /types.ts
 ```
+*(Nota: Estrutura de arquivos atualizada com base nas refatorações e arquivos existentes)*
 
 ### 6.2 Fluxos de Dados Principais
 
 1. **Fluxo de Diagnóstico e Relatório**:
    ```
-   Quiz → API → Processamento → Relatório → Follow-up
+   Quiz/WhatsApp(n8n) → API /submit → createLead (Sanity) → fetch API /generate (async) → generateReportAsync (IA, Sanity) → updateLead (Sanity)
+   Frontend (Obrigado) → polling API /report-status → fetch Lead (Sanity) → Exibe Status/Link
    ```
 
-2. **Fluxo de Blog e Redes Sociais**:
+2. **Fluxo de Blog e Redes Sociais**: (Inalterado)
    ```
    Sanity → Webhook → n8n → Adaptação → Publicação
    ```
 
-3. **Fluxo de Personalização**:
+3. **Fluxo de Personalização**: (Inalterado - Investigar otimização de velocidade)
    ```
-   Identificação → Recuperação de Dados → Renderização Personalizada
+   Identificação (Cookie/localStorage?) → Recuperação de Dados (Client-side Sanity fetch) → Renderização Personalizada
    ```
 
-4. **Fluxo de Páginas de Serviço**:
+4. **Fluxo de Páginas de Serviço**: (Inalterado)
    ```
    Requisição → Query Sanity → Verificação de Lead → Personalização → Renderização
    ```
@@ -229,60 +267,38 @@ Principais schemas:
 ## 7. Prioridades Atuais
 
 ### 7.1 Prioridade Alta
-1. **Completar dados no Sanity para serviços**
-   - Preencher completamente os campos de serviços no Sanity
-   - Adicionar dados estruturados de passos para cada serviço utilizando o campo `howItWorksSteps`
-   - Adicionar imagens de qualidade para cada serviço
-   - Verificar todos os cenários de personalização
-
-2. **Integração com APIs externas**
-   - Desenvolver integração com Perplexity e LinkedIn
-   - Expandir uso do webhook Sanity -> n8n já configurado
-   - Otimizar fluxos de processamento assíncrono
-
-3. **Rastreamento e métricas**
-   - Implementar sistema de eventos para rastreamento detalhado de interações
-   - Configurar dashboard de conversão específico para leads retornantes
-   - Adicionar rastreamento de cliques e conversões para análise
-
-4. **Verificar e corrigir campos do quiz de auditoria**
-   - Auditar campos não salvos no Sanity
-   - Garantir que todos os dados coletados estejam sendo persistidos
-   - Otimizar estrutura de dados para melhor análise
+1.  ✅ **Completar dados no Sanity para serviços** (Assumindo concluído conforme informado)
+2.  ✅ **Integração com APIs externas**
+    *   Desenvolver integração com Perplexity e LinkedIn
+    *   Expandir uso do webhook Sanity -> n8n já configurado
+3.  🟡 **Rastreamento e métricas**
+    *   Expandir eventos rastreados no Vercel Analytics (ex: visualização de serviço, identificação de lead retornante).
+    *   Configurar dashboard de conversão (na Vercel ou ferramenta externa).
+4.  ✅ **Verificar e corrigir campos do quiz de auditoria** (Auditoria concluída, sem problemas encontrados)
+5.  🟡 **Otimizar fluxos de processamento assíncrono** (Refatoração feita, falta notificação)
+    *   Implementar notificação de falha na geração de relatório (`TODO` em `generateReportAsync`).
 
 ### 7.2 Prioridade Média
-1. **Calculadoras de ROI**
-   - Desenvolver calculadoras por serviço com valores pré-preenchidos
-   - Integrar estimativas de ganho com dados do setor do lead
-
-2. **Webhooks para redes sociais**
-   - Configuração do n8n
-   - Templates por rede social
-   - Sistema de programação
-
-3. **Continuidade do blog**
-   - Calendário editorial
-   - Otimização de SEO
-   - Métricas de performance
+*(Inalterado)*
+1.  Calculadoras de ROI
+2.  Webhooks para redes sociais
+3.  Continuidade do blog
 
 ### 7.3 Prioridade Baixa
-1. **Nutrição de email**
-   - Configuração de sequências
-   - Integração com HubSpot
-   - Relatórios de desempenho
-
-2. **Testemunhos e casos de sucesso**
-   - Implementar seção de depoimentos de clientes por serviço
-   - Criar estrutura para casos de uso segmentados
+*(Inalterado)*
+1.  Nutrição de email
+2.  Testemunhos e casos de sucesso
 
 ## 8. Aspectos Técnicos e Desafios
 
 ### 8.1 Desafios Atuais
-- Persistência confiável dos estados no sistema assíncrono
+- Monitoramento de falhas na geração assíncrona
 - Manutenção de conteúdo estruturado no Sanity
 - Consistência visual entre personalização e design base
+- Otimização da velocidade de carregamento da personalização client-side
 
 ### 8.2 Considerações de Escalabilidade
+*(Inalterado)*
 - Crescimento potencial da base de leads
 - Aumento de demanda de processamento para relatórios
 - Necessidade de cache estratégico
@@ -291,48 +307,49 @@ Principais schemas:
 - Conformidade com LGPD
 - Proteção de dados de leads
 - Acesso controlado a informações sensíveis
+- ✅ API `/generate` protegida por secret token
 
 ## 9. Plano de Implementação
 
-### 9.1 Curto Prazo 
-1. ✅ Implementar visualização de fluxos no componente `ServiceHowItWorks`
-2. ✅ Completar dados no Sanity com conteúdo formatado
-3. ✅ Adicionar dados estruturados para todos os serviços no campo `howItWorksSteps`
-4. Implementar rastreamento básico de interações
-5. ✅ Configurar webhook Sanity -> n8n para processamento assíncrono
+*(Atualizado com base no estado atual)*
 
-### 9.2 Médio Prazo 
-1. ✅ Integrar com Replicate para geração de imagens personalizadas
-2. Desenvolver calculadoras de ROI específicas por serviço
-3. Implementar seção de depoimentos de clientes
-4. Configurar webhooks para redes sociais
-5. Implementar schema.org e metadados avançados para SEO
+### 9.1 Curto Prazo
+1.  ✅ Implementar visualização de fluxos no componente `ServiceHowItWorks`
+2.  ✅ Completar dados no Sanity com conteúdo formatado
+3.  ✅ Adicionar dados estruturados para todos os serviços no campo `howItWorksSteps`
+4.  🟡 Implementar rastreamento básico de interações (Vercel Analytics iniciado)
+5.  ✅ Configurar webhook Sanity -> n8n para processamento assíncrono
+6.  ✅ Refatorar sistema de status da geração de relatórios
+7.  ✅ Proteger API de geração de relatórios
+8.  ✅ Consolidar lógica de simulação
 
-### 9.3 Longo Prazo (3-6 Meses)
-1. Implementar assistente de WhatsApp
-2. Sistema completo de nutrição por email
-3. Expansão para modelos preditivos de recomendação
-4. Adicionar demonstrações interativas das automações oferecidas
+### 9.2 Médio Prazo
+1.  🟡 Integrar com Replicate para geração de imagens personalizadas (Verificar se ainda é prioridade)
+2.  Desenvolver calculadoras de ROI específicas por serviço
+3.  Implementar seção de depoimentos de clientes
+4.  Configurar webhooks para redes sociais
+5.  Implementar schema.org e metadados avançados para SEO
+6.  Implementar notificação de falha na geração de relatório
+7.  Expandir rastreamento de eventos no Analytics
+
+### 9.3 Longo Prazo
+*(Inalterado)*
+1.  Implementar assistente de WhatsApp
+2.  Sistema completo de nutrição por email
+3.  Expansão para modelos preditivos de recomendação
+4.  Adicionar demonstrações interativas das automações oferecidas
 
 ## 10. Colaboração e Workflow
 
-### 10.1 Metodologia de Desenvolvimento
-- Desenvolvimento incremental baseado em prioridade
-- Revisões periódicas de código e arquitetura
-- Documentação contínua de decisões e aprendizados
-
-### 10.2 Política de Versionamento
-- Controle de versão via Git
-- Ambientes de desenvolvimento, teste e produção
-- Estratégia de releases progressivos
+*(Inalterado)*
 
 ## 11. Conclusão e Próximos Passos Prioritários
 
-O projeto encontra-se em fase avançada, com várias funcionalidades essenciais implementadas, incluindo as páginas de serviço, personalização para leads retornantes, API de leads e visualização de fluxos de automação. As prioridades imediatas são:
+O projeto avançou com refatorações importantes no sistema de geração de relatórios (status, segurança, otimização) e na implementação inicial de analytics. As prioridades imediatas agora são:
 
-1. Adicionar dados estruturados no campo `howItWorksSteps` para todos os serviços no Sanity
-2. Verificar e corrigir campos do quiz de auditoria que não estão sendo salvos
-3. Expandir uso do webhook Sanity -> n8n já configurado para integrações adicionais
-4. Implementar rastreamento e métricas de conversão
+1.  **Implementar Notificação de Falha:** Adicionar a notificação pendente (`TODO`) em `generateReportAsync`.
+2.  **Expandir Analytics:** Adicionar rastreamento para mais eventos chave (visualização de serviço, lead retornante).
+3.  **Otimizar Personalização:** Investigar e implementar melhorias na velocidade de carregamento da personalização na home page (ex: server-side fetching com cookies).
+4.  **Integrações Externas:** Continuar desenvolvimento das integrações com Perplexity, LinkedIn e n8n.
 
-Este documento serve como referência central para o estado atual do projeto e diretrizes para o desenvolvimento contínuo, refletindo as implementações recentes e os próximos passos.
+Este documento reflete o estado atual após as últimas modificações.

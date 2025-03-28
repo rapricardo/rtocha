@@ -9,14 +9,14 @@ import { track } from '@vercel/analytics'; // Import track function
 interface QuizCompleteProps {
   preview: QuizPreview | null;
   isLoading: boolean;
-  onRequestFullReport: () => Promise<string | null>; // Modificado para retornar o requestId
+  // onRequestFullReport: () => Promise<string | null>; // Prop removida - lógica agora interna
   error: string | null;
 }
 
 export default function QuizComplete({
   preview,
   isLoading,
-  onRequestFullReport, // Note: This prop might become simpler or unnecessary after refactor
+  // onRequestFullReport, // Prop removida
   error
 }: QuizCompleteProps) {
   // Estado para gerenciar polling e status de relatório (sem reportRequestId)
@@ -161,8 +161,8 @@ export default function QuizComplete({
     return () => {
       clearInterval(pollingInterval);
     };
-  // Dependências: pollingActive e leadId (indiretamente via preview)
-  }, [pollingActive, preview?.leadId, reportUrl]); 
+    // Dependências: pollingActive, leadId (indiretamente via preview), e preview para reavaliar se reportUrl já existe
+  }, [pollingActive, preview, preview?.leadId, reportUrl]); 
 
   // Função para lidar com a solicitação de relatório completo (simplificada)
   const handleRequestReport = async () => {
@@ -178,7 +178,7 @@ export default function QuizComplete({
     
     try {
       // Track the request event before making the API call
-      track('Report Requested', {
+      track('Report Requested', { // Moved track call here
         leadId: preview.leadId,
         email: preview.email
       });

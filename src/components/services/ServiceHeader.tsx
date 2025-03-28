@@ -1,4 +1,5 @@
 import { urlForImage } from "@/lib/sanity/image";
+import Image from "next/image"; // Add Image import
 
 interface ServiceHeaderProps {
   name: string;
@@ -31,11 +32,14 @@ export default function ServiceHeader({ name, shortDescription, marketingTitle, 
         </div>
         {image && (
           <div className="md:w-1/2 flex justify-center">
-            <div className="rounded-lg overflow-hidden shadow-2xl w-full max-w-lg">
-              <img 
-                src={urlForImage(image).width(800).height(600).url()} 
+            {/* Use relative positioning for Next/Image with fill */}
+            <div className="relative rounded-lg overflow-hidden shadow-2xl w-full max-w-lg aspect-[4/3]"> 
+              <Image 
+                src={urlForImage(image).url()} // Use base URL
                 alt={name}
-                className="w-full h-auto"
+                fill // Use fill
+                className="object-cover" // Use object-cover
+                sizes="(max-width: 768px) 100vw, 50vw" // Add sizes prop
               />
             </div>
           </div>

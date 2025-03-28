@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { groq } from 'next-sanity';
+// @ts-expect-error - Temporarily ignore type resolution issue for groq (expecting an error)
+import { groq } from 'next-sanity'; 
 import { client } from '@/lib/sanity/client';
 
 // Definição dos tipos
@@ -28,9 +29,10 @@ interface LeadInfo {
         path: string;
       };
     };
-    ctaServiceImage?: any;
-    ctaWhatsappImage?: any;
-    resultsImage?: any;
+    // Define basic structure for legacy image fields
+    ctaServiceImage?: { asset?: { url?: string; _ref?: string } };
+    ctaWhatsappImage?: { asset?: { url?: string; _ref?: string } };
+    resultsImage?: { asset?: { url?: string; _ref?: string } };
   };
   // Novo campo de URLs para imagens personalizadas
   customImagesUrls?: {
@@ -254,5 +256,6 @@ async function fetchLeadData(leadId: string): Promise<ReturningLeadData | null> 
   };
 }
 
-const isClient = typeof window !== 'undefined';
-const leadId = isClient ? localStorage.getItem('leadId') : null;
+// Remove unused variable declaration at module scope
+// const isClient = typeof window !== 'undefined';
+// const leadId = isClient ? localStorage.getItem('leadId') : null;

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sanityClient } from '@/lib/sanity/client';
-import { groq } from 'next-sanity';
+// @ts-expect-error - Temporarily ignore type resolution issue for groq (expecting an error)
+import { groq } from 'next-sanity'; 
 
 // Função auxiliar para validar as credenciais básicas
 function validateBasicAuth(req: NextRequest): boolean {
@@ -119,7 +120,7 @@ export async function GET(req: NextRequest) {
     }`;
     
     // Parâmetros para a consulta
-    const params: Record<string, any> = {
+    const params: Record<string, string | number> = { // Use specific types
       limit: limit
     };
     

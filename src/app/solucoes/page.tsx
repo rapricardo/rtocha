@@ -2,6 +2,7 @@ import { Metadata } from "next";
 import Link from "next/link";
 import { getAllServices } from "@/lib/services/serviceQueries";
 import { urlForImage } from "@/lib/sanity/image";
+import Image from 'next/image'; // Import Image
 import { SectionTitle } from "@/components/SectionTitle";
 
 export const metadata: Metadata = {
@@ -33,14 +34,17 @@ export default async function ServicesPage() {
           />
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mt-12">
-            {services.map((service: any) => (
+            {/* Define a more specific type for service, including image asset structure */}
+            {services.map((service: { _id: string; name: string; shortDescription: string; slug: string; image?: { asset?: { _ref?: string; url?: string } } }) => (
               <div key={service._id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow duration-300">
                 {service.image && (
-                  <div className="h-48 overflow-hidden">
-                    <img 
-                      src={urlForImage(service.image).width(600).height(400).url()} 
+                  <div className="relative h-48 overflow-hidden"> {/* Added relative */}
+                    <Image 
+                      src={urlForImage(service.image).url()} // Use base URL
                       alt={service.name}
-                      className="w-full h-full object-cover"
+                      fill // Use fill
+                      className="object-cover" // Keep object-cover
+                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" // Add sizes
                     />
                   </div>
                 )}

@@ -1,11 +1,12 @@
 'use client';
 
 import { useEffect } from 'react';
+// import { useEffect } from 'react'; // Removed duplicate
 import { use } from 'react';
 import { storeLeadId } from '@/lib/hooks/useReturningLead';
 import ReportStatusIndicator from '@/components/ReportStatusIndicator';
 import AnimatedFacts from '@/components/AnimatedFacts';
-import Link from 'next/link';
+// import Link from 'next/link'; // Removed unused import
 
 export default function ThankYouPage({ params }: { params: Promise<{ leadId: string }> }) {
   // Desembrulhar o objeto params usando React.use()
@@ -45,4 +46,4 @@ export default function ThankYouPage({ params }: { params: Promise<{ leadId: str
       </div>
     </div>
   );
-} 
+}

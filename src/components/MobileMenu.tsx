@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Button } from './Button';
+import Link from 'next/link'; // Import Link
 
 export function MobileMenu() {
   const [isOpen, setIsOpen] = useState(false);
@@ -44,27 +45,28 @@ export function MobileMenu() {
       {isOpen && (
         <div className="absolute top-full left-0 right-0 bg-white shadow-md py-3 px-4 z-20">
           <nav className="flex flex-col space-y-3">
-            <a 
+            {/* Use Link for internal navigation */}
+            <Link 
               href="/#sobre" 
               className="py-2 text-gray-700 hover:text-[#d32b36]"
               onClick={() => setIsOpen(false)}
             >
               Sobre
-            </a>
-            <a 
+            </Link>
+            <Link 
               href="/#servicos" 
               className="py-2 text-gray-700 hover:text-[#d32b36]"
               onClick={() => setIsOpen(false)}
             >
               Serviços
-            </a>
-            <a 
+            </Link>
+            <Link 
               href="/#cta-section" 
               className="py-2 text-gray-700 hover:text-[#d32b36]"
               onClick={() => setIsOpen(false)}
             >
               Contato
-            </a>
+            </Link>
             <Button 
               href="https://wa.me/5519991924835?text=Tocha%2C%20me%20ajuda%20a%20vender%20mais" 
               className="w-full mt-2"

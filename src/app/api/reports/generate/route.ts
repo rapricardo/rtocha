@@ -1,13 +1,13 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server'; // Import NextRequest
 import { sanityClient } from '@/lib/sanity/client';
-// @ts-ignore - Temporarily ignore type resolution issue for groq
+// @ts-expect-error - Temporarily ignore type resolution issue for groq (expecting an error)
 import { groq } from 'next-sanity';
 import { generatePersonalizedRecommendations, generateContextAnalysis } from '@/lib/ai/gemini';
 import { updateLead } from '@/lib/sanity/mutations';
 import { generateReportId } from '@/lib/utils/reportGenerator';
 import { ServiceData, Recommendation, LeadData, ReportData, PortableTextBlock, SanityReference } from '@/lib/types'; // Added types
 
-const SECRET_TOKEN = process.env.INTERNAL_API_SECRET;
+const SECRET_TOKEN = process.env.INTERNAL_API_SECRET; // Ler o token
 
 // --- Helper Functions ---
 

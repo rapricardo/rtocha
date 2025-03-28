@@ -60,10 +60,11 @@ export interface LeadInfo {
   }[];
   // Campo legado para compatibilidade
   customImages?: {
-    welcomeImage?: any;
-    ctaServiceImage?: any;
-    ctaWhatsappImage?: any;
-    resultsImage?: any;
+    // Define basic structure for legacy image fields
+    welcomeImage?: { asset?: { url?: string; _ref?: string } };
+    ctaServiceImage?: { asset?: { url?: string; _ref?: string } };
+    ctaWhatsappImage?: { asset?: { url?: string; _ref?: string } };
+    resultsImage?: { asset?: { url?: string; _ref?: string } };
   };
   // Novo campo de URLs para imagens personalizadas
   customImagesUrls?: {

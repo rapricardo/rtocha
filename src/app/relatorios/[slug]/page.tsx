@@ -1,13 +1,13 @@
 import { Metadata } from 'next'
-import Image from 'next/image'
+// import Image from 'next/image' // Removed unused import
 import { PortableText } from '@portabletext/react'
 import { client } from '@/lib/sanity/client'
 import { getReportBySlug } from '@/lib/sanity/queries'
-// @ts-ignore - Temporarily ignore type resolution issue for groq
+// @ts-expect-error - Temporarily ignore type resolution issue for groq (expecting an error)
 import { groq } from 'next-sanity'; 
 import { Button } from '@/components/Button'
 import { SectionTitle } from '@/components/SectionTitle'
-import { PortableTextBlock, SanityReference } from '@/lib/types' // Added SanityReference
+import { PortableTextBlock } from '@/lib/types' // Removed unused SanityReference
 import { portableTextComponents } from '@/lib/portable-text/components'
 import { AnalyticsTracker } from '@/components/AnalyticsTracker' // Import AnalyticsTracker
 import ReportCTAButton from '@/components/reports/ReportCTAButton'; // Import the new client component

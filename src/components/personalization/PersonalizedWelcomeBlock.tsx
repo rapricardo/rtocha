@@ -1,11 +1,11 @@
 'use client';
 
 import React, { useEffect } from 'react';
-import Image from 'next/image';
+// import Image from 'next/image'; // Removed unused
 import { Button } from '@/components/Button';
 import { useReturningLead } from '@/lib/hooks/useReturningLead';
-import { urlForImage } from '@/lib/sanity/image';
-import { getPersonalizedImageUrl } from '@/lib/services/imageUtils';
+// import { urlForImage } from '@/lib/sanity/image'; // Removed unused
+// import { getPersonalizedImageUrl } from '@/lib/services/imageUtils'; // Removed unused again
 import PersonalizedImage from './PersonalizedImage';
 
 interface PersonalizedWelcomeBlockProps {
@@ -40,22 +40,16 @@ export default function PersonalizedWelcomeBlock({ className = '', forceDisplay 
   const firstName = data?.lead?.name?.split(' ')[0] || 'visitante';
   const companyName = data?.lead?.companyName || 'sua empresa';
   
-  // Imagem padrão para fallback
-  const defaultImage = '/images/personagem-_tocha_em_uma_camiseta_amarela_com_uma_postura_amigvel_e_receptiva_demonstrando_abertura_jzix2dyie3u1gj8e6a9f_2.webp';
+  // Imagem padrão para fallback - Note: imageUrl is calculated but not directly used below, PersonalizedImage handles it.
+  // const defaultImage = '/images/personagem-_tocha_em_uma_camiseta_amarela_com_uma_postura_amigvel_e_receptiva_demonstrando_abertura_jzix2dyie3u1gj8e6a9f_2.webp';
+  // const imageUrl = getPersonalizedImageUrl(data?.lead, 'welcome', defaultImage);
   
-  // Usar o utilitário para obter a URL da imagem (checando ambos os formatos)
-  const imageUrl = getPersonalizedImageUrl(
-    data?.lead, 
-    'welcome', 
-    defaultImage
-  );
-  
-  // Verificar se temos uma imagem personalizada (em qualquer formato)
-  const hasWelcomeImage = imageUrl !== defaultImage;
+  // Remove unused variables
+  // const hasWelcomeImage = imageUrl !== defaultImage; 
   const reports = data?.reports || [];
-
-  // Imagem de demonstração quando não há imagem personalizada
-  const demoImageUrl = '/images/tocha_segurando_placa.jpg'; // Substitua pelo caminho real da imagem de demonstração
+  // const demoImageUrl = '/images/tocha_segurando_placa.jpg'; 
+  // Remove headingText as it's not used in the JSX below
+  // const headingText = ... 
 
   return (
     <div className={`bg-gradient-to-r from-gray-50 to-blue-50 rounded-xl p-6 pt-8 my-6 shadow-md ${className}`}>

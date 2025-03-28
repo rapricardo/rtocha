@@ -2,7 +2,7 @@
 
 import React, { useEffect } from 'react';
 import { useReturningLead } from '@/lib/hooks/useReturningLead';
-import WelcomeBackBanner from './WelcomeBackBanner';
+// import WelcomeBackBanner from './WelcomeBackBanner'; // Removed unused
 import PersonalizedWelcomeBlock from './PersonalizedWelcomeBlock';
 import RecommendedServices from './RecommendedServices';
 
@@ -27,10 +27,10 @@ export default function WelcomeBackWrapper() {
     return null;
   }
 
-  // Verificar se temos os dados do lead com a imagem (em qualquer formato)
-  const hasLegacyImage = !!data.lead?.customImages?.welcomeImage?.asset?.url;
-  const hasNewImage = !!data.lead?.customImagesUrls?.welcomeImageUrl;
-  const hasCustomImage = hasLegacyImage || hasNewImage;
+  // Remove unused variables
+  // const hasLegacyImage = !!data.lead?.customImages?.welcomeImage?.asset?.url;
+  // const hasNewImage = !!data.lead?.customImagesUrls?.welcomeImageUrl;
+  // const hasCustomImage = hasLegacyImage || hasNewImage;
 
   return (
     <div className="space-y-8">

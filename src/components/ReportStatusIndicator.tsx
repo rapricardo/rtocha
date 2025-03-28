@@ -8,13 +8,8 @@ interface ReportStatusProps {
   leadId: string;
 }
 
-interface ReportStatus {
-  // Simplified status - API returns necessary info
-  status: 'queued' | 'processing' | 'completed' | 'partial' | 'failed';
-  message: string;
-  // updatedAt?: string; // Not strictly needed in component state
-  // attempts?: number; // Not strictly needed in component state
-}
+// Remove unused ReportStatus interface
+// interface ReportStatus { ... }
 
 export default function ReportStatusIndicator({ leadId }: ReportStatusProps) {
   // Use a single state for status/message from API
@@ -146,7 +141,7 @@ export default function ReportStatusIndicator({ leadId }: ReportStatusProps) {
         intervalId = null;
       }
     };
-  }, [leadId]);
+  }, [leadId, pollingCount]); // Add pollingCount to dependency array
   
   // Renderizar mensagem de carregamento
   if (isLoading) {

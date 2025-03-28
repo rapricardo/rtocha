@@ -7,7 +7,8 @@ interface ServiceCTAProps {
 }
 
 export default function ServiceCTA({ serviceName }: ServiceCTAProps) {
-  const { isReturningLead, isLoading, data } = useReturningLead();
+  // Remove unused 'isLoading' from destructuring
+  const { isReturningLead, data } = useReturningLead(); 
   
   // Construir a mensagem de WhatsApp baseada nos dados do usuário
   const buildWhatsAppMessage = () => {

@@ -3,7 +3,7 @@ import { getServiceBySlug, getAllServices } from "@/lib/services/serviceQueries"
 import { urlForImage } from "@/lib/sanity/image";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
+import Image from "next/image"; // Already imported, good.
 import ServiceHeader from "@/components/services/ServiceHeader";
 import ServiceDetails from "@/components/services/ServiceDetails";
 import ServiceBenefits from "@/components/services/ServiceBenefits";
@@ -17,7 +17,8 @@ import PersonalizedServiceWrapper from "@/components/services/PersonalizedServic
 export async function generateStaticParams() {
   const services = await getAllServices();
   
-  return services.map((service: any) => ({
+  // Add specific type for service in map
+  return services.map((service: { slug: string }) => ({ 
     slug: service.slug,
   }));
 }
@@ -113,11 +114,13 @@ export default async function ServicePage({ params }: { params: { slug: string }
               {service.relatedServices.map((relatedService) => (
                 <div key={relatedService._id} className="bg-white rounded-lg shadow-md overflow-hidden">
                   {relatedService.image && (
-                    <div className="h-48 overflow-hidden">
-                      <img 
-                        src={urlForImage(relatedService.image).width(600).height(400).url()} 
+                    <div className="relative h-48 overflow-hidden"> {/* Added relative positioning */}
+                      <Image 
+                        src={urlForImage(relatedService.image).url()} // Use base URL for src
                         alt={relatedService.name}
-                        className="w-full h-full object-cover"
+                        fill // Use fill to cover the container
+                        className="object-cover" // Keep object-cover
+                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" // Add sizes prop for responsiveness
                       />
                     </div>
                   )}
