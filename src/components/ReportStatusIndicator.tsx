@@ -141,7 +141,7 @@ export default function ReportStatusIndicator({ leadId }: ReportStatusProps) {
         intervalId = null;
       }
     };
-  }, [leadId, pollingCount]); // Add pollingCount to dependency array
+  }, [leadId]); // Remove pollingCount from dependency array
   
   // Renderizar mensagem de carregamento
   if (isLoading) {

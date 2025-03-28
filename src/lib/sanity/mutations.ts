@@ -42,9 +42,10 @@ export async function createLead(leadData: LeadData) {
         'Content-Type': 'application/json',
       };
       if (SECRET_TOKEN) {
-        headers['Authorization'] = `Bearer ${SECRET_TOKEN}`; // Adicionar o header
+        headers['Authorization'] = `Bearer ${SECRET_TOKEN}`; 
+        console.log(`🔑 [mutations.ts] Sending Authorization header: Bearer ${SECRET_TOKEN.substring(0, 5)}...`); // Log token being sent (partially)
       } else {
-         console.warn("⚠️ INTERNAL_API_SECRET não definido. Chamada para /generate não será autorizada se a API estiver protegida.");
+         console.warn("⚠️ [mutations.ts] INTERNAL_API_SECRET não definido. Chamada para /generate não será autorizada.");
       }
 
       fetch(`${baseUrl}/api/reports/generate`, {
