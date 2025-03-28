@@ -327,9 +327,11 @@ async function generateReportAsync(leadId: string) {
 // --- API Endpoint ---
 
 export async function POST(request: NextRequest) {
+  // Add initial log right at the start
+  console.log(`🚀 [generate/route.ts] Função POST INVOCADA. Tentando ler body...`); 
   try {
     // 1. Verify Secret Token
-    console.log(`🔑 [generate/route.ts] Checking token. Env var defined: ${!!SECRET_TOKEN}`); // Log if env var is read
+    console.log(`🔑 [generate/route.ts] Checking token. Env var defined: ${!!SECRET_TOKEN}`); 
     const authorizationHeader = request.headers.get('Authorization');
     const receivedToken = authorizationHeader?.split('Bearer ')[1];
     console.log(`🔑 [generate/route.ts] Received header: ${authorizationHeader ? authorizationHeader.substring(0, 15) + '...' : 'None'}`); // Log received header (partially)
