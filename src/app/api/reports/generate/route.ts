@@ -97,20 +97,34 @@ async function fetchServicesForReport(): Promise<ServiceData[]> {
  * Throws an error if AI generation fails.
  */
 async function generateAIContent(lead: LeadData, services: ServiceData[]): Promise<{ recommendations: Recommendation[]; contextAnalysisData: { visaoGeral: string; analiseContexto: string; } }> {
-  console.log('🧠 Gerando recomendações personalizadas com Gemini');
-  const recommendationsResult = await generatePersonalizedRecommendations(lead, services);
+  console.log('🧠 Iniciando geração de conteúdo AI em paralelo...');
+
+  // Start both AI calls concurrently
+  const recommendationsPromise = generatePersonalizedRecommendations(lead, services);
+  const contextAnalysisPromise = generateContextAnalysis(lead);
+
+  // Wait for both promises to resolve
+  const [recommendationsResult, contextAnalysisData] = await Promise.all([
+    recommendationsPromise,
+    contextAnalysisPromise
+  ]);
+
+  // Validate results
   if (!recommendationsResult || !recommendationsResult.recommendations) {
+    // Even if recommendations fail, context might succeed, but we need both for a full report.
+    // Consider if partial report generation is desired or if failure is better.
+    // For now, throwing error if recommendations fail.
     throw new Error('Falha ao gerar recomendações personalizadas');
   }
   console.log(`✅ Geradas ${recommendationsResult.recommendations.length} recomendações`);
 
-  console.log('🧠 Gerando análise de contexto');
-  const contextAnalysisData = await generateContextAnalysis(lead);
-  if (!contextAnalysisData) {
-    throw new Error('Falha ao gerar análise de contexto');
+  if (!contextAnalysisData || !contextAnalysisData.visaoGeral || !contextAnalysisData.analiseContexto) {
+     // Check for empty results from context analysis as well
+    throw new Error('Falha ao gerar análise de contexto (resultado vazio ou inválido)');
   }
   console.log('✅ Análise de contexto gerada com sucesso');
 
+  // Return combined results
   return { recommendations: recommendationsResult.recommendations, contextAnalysisData };
 }
 
