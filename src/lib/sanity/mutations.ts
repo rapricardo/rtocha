@@ -1,8 +1,10 @@
 import { sanityClient } from './client';
 // import { v4 as uuidv4 } from 'uuid'; // Comentando importação não utilizada
 import { LeadData, ReportData } from '@/lib/types';
+// Import the async generation function directly
+import { generateReportAsync } from '@/app/api/reports/generate/route'; 
 
-const SECRET_TOKEN = process.env.INTERNAL_API_SECRET; // Ler o token
+// const SECRET_TOKEN = process.env.INTERNAL_API_SECRET; // No longer needed here
 
 // Criar um novo lead
 export async function createLead(leadData: LeadData) {
@@ -27,54 +29,15 @@ export async function createLead(leadData: LeadData) {
     
     console.log('✅ Lead criado com sucesso:', lead._id);
     
-    // Iniciar geração assíncrona do relatório
-    try {
-      // Chamada assíncrona - não esperamos pelo resultado
-      // Usamos URL absoluta baseada na localização atual (funciona tanto localmente quanto em produção)
-      const baseUrl = typeof window !== 'undefined' 
-        ? window.location.origin
-        : process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3001';
-        
-      console.log(`🔄 Iniciando geração de relatório via ${baseUrl}/api/reports/generate`);
-      
-      // Adicionar headers na chamada fetch
-      const headers: HeadersInit = {
-        'Content-Type': 'application/json',
-      };
-      if (SECRET_TOKEN) {
-        headers['Authorization'] = `Bearer ${SECRET_TOKEN}`; 
-        console.log(`🔑 [mutations.ts] Sending Authorization header: Bearer ${SECRET_TOKEN.substring(0, 5)}...`); // Log token being sent (partially)
-      } else {
-         console.warn("⚠️ [mutations.ts] INTERNAL_API_SECRET não definido. Chamada para /generate não será autorizada.");
-      }
-
-      // Log before fetch
-      console.log(`[mutations.ts] PREPARANDO FETCH para ${baseUrl}/api/reports/generate com headers:`, JSON.stringify(headers));
-
-      fetch(`${baseUrl}/api/reports/generate`, {
-        method: 'POST',
-        headers: headers, // Usar os headers definidos
-        body: JSON.stringify({ 
-          leadId: lead._id 
-        }),
-      }).then(response => {
-        if (!response.ok) {
-          throw new Error(`Resposta de erro: ${response.status}`);
-        }
-        return response.json();
-      }).then(data => {
-        console.log('✅ Resposta da API de geração:', data);
-      }).catch(err => {
-        // Log mais detalhado do erro
-        console.error('⚠️ Erro detalhado ao iniciar geração (não bloqueante):', JSON.stringify(err, Object.getOwnPropertyNames(err)));
-        // Não lançamos o erro aqui para não bloquear a criação do lead
-      });
-      
-      console.log('🔄 Processo de geração de relatório iniciado para:', lead._id);
-    } catch (genError) {
-      // Apenas logamos o erro, não afeta a criação do lead
-      console.error('⚠️ Erro ao chamar API de geração (não bloqueante):', genError);
-    }
+    // Iniciar geração assíncrona do relatório DIRETAMENTE (sem fetch)
+    // Fire-and-forget: We don't await this promise
+    generateReportAsync(lead._id).catch(error => {
+      // Log errors from the async process, but don't let them crash the lead creation
+      console.error(`❌ Erro não capturado na chamada direta de generateReportAsync para lead ${lead._id}:`, error);
+    });
+    console.log(`🔄 Chamada direta para generateReportAsync iniciada para lead: ${lead._id}`);
+    
+    // Remover bloco try/catch anterior que fazia o fetch
     
     return lead._id;
   } catch (error) {

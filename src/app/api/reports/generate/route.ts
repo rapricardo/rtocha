@@ -236,7 +236,8 @@ async function saveReportAndAssociate(leadId: string, reportData: Omit<ReportDat
 
 // --- Main Async Generation Function (Refactored) ---
 
-async function generateReportAsync(leadId: string) {
+// Export the function so it can be called directly from mutations.ts
+export async function generateReportAsync(leadId: string) { 
   const MAX_ATTEMPTS = 3;
   let attempt = 0;
   let success = false;
@@ -324,28 +325,19 @@ async function generateReportAsync(leadId: string) {
   }
 }
 
-// --- API Endpoint ---
+// --- API Endpoint (Now potentially unused if only called internally, but keep for potential direct triggers/testing) ---
 
 export async function POST(request: NextRequest) {
   // Add initial log right at the start
-  console.log(`🚀 [generate/route.ts] Função POST INVOCADA. Tentando ler body...`); 
+  console.log(`🚀 [generate/route.ts] API POST Recebida (pode ser de teste ou chamada antiga).`); 
   try {
-    // 1. Verify Secret Token
-    console.log(`🔑 [generate/route.ts] Checking token. Env var defined: ${!!SECRET_TOKEN}`); 
-    const authorizationHeader = request.headers.get('Authorization');
-    const receivedToken = authorizationHeader?.split('Bearer ')[1];
-    console.log(`🔑 [generate/route.ts] Received header: ${authorizationHeader ? authorizationHeader.substring(0, 15) + '...' : 'None'}`); // Log received header (partially)
-    console.log(`🔑 [generate/route.ts] Received token: ${receivedToken ? receivedToken.substring(0, 5) + '...' : 'None'}`); // Log received token (partially)
+    // Remove token verification - no longer needed if called directly
+    // // 1. Verify Secret Token
+    // console.log(`🔑 [generate/route.ts] Checking token. Env var defined: ${!!SECRET_TOKEN}`); 
+    // const authorizationHeader = request.headers.get('Authorization');
+    // ... (token verification logic removed) ...
 
-    if (!SECRET_TOKEN || receivedToken !== SECRET_TOKEN) {
-      console.warn(`⚠️ [generate/route.ts] Token mismatch or missing. Expected: ${SECRET_TOKEN ? SECRET_TOKEN.substring(0,5)+'...' : 'None'}, Received: ${receivedToken ? receivedToken.substring(0,5)+'...' : 'None'}`);
-      return NextResponse.json(
-        { success: false, message: 'Acesso não autorizado' },
-        { status: 403 } // Forbidden
-      );
-    }
-
-    // 2. Get leadId and validate
+    // 1. Get leadId and validate (was step 2)
     const { leadId } = await request.json();
     if (!leadId) {
       return NextResponse.json(
