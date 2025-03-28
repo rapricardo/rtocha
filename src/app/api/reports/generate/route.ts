@@ -211,7 +211,17 @@ function prepareReportData(lead: LeadData, aiContent: { recommendations: Recomme
  * Creates the report document in Sanity and associates it with the lead.
  * Throws an error if creation or update fails.
  */
-async function saveReportAndAssociate(leadId: string, reportData: Omit<ReportData, '_id' | 'createdAt' | 'views' | 'lastViewedAt' | 'callToActionClicked'>): Promise<void> {
+// Define the expected structure for recommended services within reportData more explicitly if needed
+type PreparedRecommendedService = {
+  _key: string;
+  service: { _type: 'reference'; _ref: string };
+  // include other fields if necessary, though only _key and _ref are used below
+};
+type PreparedReportData = Omit<ReportData, '_id' | 'createdAt' | 'views' | 'lastViewedAt' | 'callToActionClicked'> & {
+  recommendedServices?: PreparedRecommendedService[]; // Ensure this is part of the type
+};
+
+async function saveReportAndAssociate(leadId: string, reportData: PreparedReportData): Promise<void> {
   console.log('[generateReportAsync] STEP 5.1: Criando documento de relatório no Sanity...');
   const report = await sanityClient.create({
     _type: 'report',
@@ -228,9 +238,15 @@ async function saveReportAndAssociate(leadId: string, reportData: Omit<ReportDat
     report: {
       _type: 'reference',
       _ref: report._id
-    }
+    },
+    // Add the recommended services directly to the lead document
+    recommendedServices: reportData.recommendedServices?.map((rec: PreparedRecommendedService) => ({ // Add type hint for rec
+      _key: rec._key, // Include key for Sanity array items
+      _type: 'reference',
+      _ref: rec.service._ref
+    })) || [] // Map to reference array, ensure it's an empty array if source is null/undefined
   });
-  console.log('[generateReportAsync] STEP 5.4: Relatório associado ao lead com sucesso.');
+  console.log('[generateReportAsync] STEP 5.4: Relatório e serviços recomendados associados ao lead com sucesso.');
 }
 
 
