@@ -17,7 +17,7 @@ const SECRET_TOKEN = process.env.INTERNAL_API_SECRET; // Ler o token
  * Returns null if report already exists, otherwise returns lead data.
  */
 async function fetchLeadForReport(leadId: string): Promise<LeadData | null> {
-  console.log(`🔍 Buscando dados do lead ${leadId}...`);
+  console.log(`[generateReportAsync] STEP 1.1: Buscando dados do lead ${leadId}...`);
   try {
     // Fetch lead data including a potential reference to an existing report
     const lead = await sanityClient.fetch<LeadData & { report?: SanityReference }>(
@@ -38,7 +38,7 @@ async function fetchLeadForReport(leadId: string): Promise<LeadData | null> {
       // Throw error to stop the process in generateReportAsync's main try block
       throw new Error(`Lead ${leadId} não encontrado no banco de dados`);
     }
-    console.log(`🔍 Dados do lead encontrados: Sim`);
+    console.log(`[generateReportAsync] STEP 1.2: Dados do lead encontrados.`);
 
     // Check if report already exists using the fetched reference
     if (lead.report?._ref) {
@@ -52,10 +52,11 @@ async function fetchLeadForReport(leadId: string): Promise<LeadData | null> {
       return null; // Indicate report already exists, stopping further generation
     }
     // No existing report found, return the lead data
+    console.log(`[generateReportAsync] STEP 1.3: Nenhum relatório existente encontrado. Prosseguindo.`);
     return lead;
   } catch (fetchError) {
-    console.error(`❌ Erro ao buscar dados do lead: ${fetchError}`);
-    // Update status to failed before throwing
+    console.error(`❌ [generateReportAsync] Erro em fetchLeadForReport: ${fetchError}`);
+    // Update status to failed before throwing (already done in original code)
     await updateReportStatus(
       leadId,
       'failed',
@@ -72,7 +73,7 @@ async function fetchLeadForReport(leadId: string): Promise<LeadData | null> {
  * Throws an error if fetch fails or no services are found.
  */
 async function fetchServicesForReport(): Promise<ServiceData[]> {
-  console.log('📝 Buscando serviços disponíveis');
+  console.log('[generateReportAsync] STEP 2.1: Buscando serviços disponíveis...');
   const services = await sanityClient.fetch<ServiceData[]>(groq`*[_type == "service"]{
     _id,
     name,
@@ -88,7 +89,7 @@ async function fetchServicesForReport(): Promise<ServiceData[]> {
   if (!services || services.length === 0) {
     throw new Error('Nenhum serviço disponível para recomendação');
   }
-  console.log(`📊 Encontrados ${services.length} serviços disponíveis`);
+  console.log(`[generateReportAsync] STEP 2.2: Encontrados ${services.length} serviços.`);
   return services;
 }
 
@@ -97,7 +98,7 @@ async function fetchServicesForReport(): Promise<ServiceData[]> {
  * Throws an error if AI generation fails.
  */
 async function generateAIContent(lead: LeadData, services: ServiceData[]): Promise<{ recommendations: Recommendation[]; contextAnalysisData: { visaoGeral: string; analiseContexto: string; } }> {
-  console.log('🧠 Iniciando geração de conteúdo AI em paralelo...');
+  console.log('[generateReportAsync] STEP 3.1: Iniciando geração de conteúdo AI em paralelo...');
 
   // Start both AI calls concurrently
   const recommendationsPromise = generatePersonalizedRecommendations(lead, services);
@@ -116,13 +117,13 @@ async function generateAIContent(lead: LeadData, services: ServiceData[]): Promi
     // For now, throwing error if recommendations fail.
     throw new Error('Falha ao gerar recomendações personalizadas');
   }
-  console.log(`✅ Geradas ${recommendationsResult.recommendations.length} recomendações`);
+  console.log(`[generateReportAsync] STEP 3.2: Recomendações geradas (${recommendationsResult.recommendations.length}).`);
 
   if (!contextAnalysisData || !contextAnalysisData.visaoGeral || !contextAnalysisData.analiseContexto) {
      // Check for empty results from context analysis as well
     throw new Error('Falha ao gerar análise de contexto (resultado vazio ou inválido)');
   }
-  console.log('✅ Análise de contexto gerada com sucesso');
+  console.log('[generateReportAsync] STEP 3.3: Análise de contexto gerada.');
 
   // Return combined results
   return { recommendations: recommendationsResult.recommendations, contextAnalysisData };
@@ -132,7 +133,7 @@ async function generateAIContent(lead: LeadData, services: ServiceData[]): Promi
  * Prepares the report data structure for Sanity.
  */
 function prepareReportData(lead: LeadData, aiContent: { recommendations: Recommendation[]; contextAnalysisData: { visaoGeral: string; analiseContexto: string; } }, services: ServiceData[]): Omit<ReportData, '_id' | 'createdAt' | 'views' | 'lastViewedAt' | 'callToActionClicked'> {
-  console.log('📝 Estruturando dados para o relatório');
+  console.log('[generateReportAsync] STEP 4.1: Estruturando dados para o relatório...');
   const serviceMap = Object.fromEntries(
     services.map((service) => [service.name, service._id])
   );
@@ -184,7 +185,7 @@ function prepareReportData(lead: LeadData, aiContent: { recommendations: Recomme
   ];
 
   const reportId = generateReportId();
-  console.log(`📝 ID do relatório gerado: ${reportId}`);
+  console.log(`[generateReportAsync] STEP 4.2: ID do relatório gerado: ${reportId}`);
 
   // Ensure lead._id exists before creating reference
   if (!lead._id) {
@@ -211,16 +212,16 @@ function prepareReportData(lead: LeadData, aiContent: { recommendations: Recomme
  * Throws an error if creation or update fails.
  */
 async function saveReportAndAssociate(leadId: string, reportData: Omit<ReportData, '_id' | 'createdAt' | 'views' | 'lastViewedAt' | 'callToActionClicked'>): Promise<void> {
-  console.log('💾 Criando documento de relatório no Sanity');
+  console.log('[generateReportAsync] STEP 5.1: Criando documento de relatório no Sanity...');
   const report = await sanityClient.create({
     _type: 'report',
     ...reportData,
     createdAt: new Date().toISOString(),
     views: 0
   });
-  console.log('✅ Documento de relatório criado com ID:', report._id);
+  console.log(`[generateReportAsync] STEP 5.2: Documento de relatório criado com ID: ${report._id}`);
 
-  console.log('🔄 Associando relatório ao lead...');
+  console.log('[generateReportAsync] STEP 5.3: Associando relatório ao lead...');
   await updateLead(leadId, {
     status: 'qualified', // Consider if status should always be qualified here
     reportGenerated: true,
@@ -229,7 +230,7 @@ async function saveReportAndAssociate(leadId: string, reportData: Omit<ReportDat
       _ref: report._id
     }
   });
-  console.log('✅ Relatório associado ao lead com sucesso');
+  console.log('[generateReportAsync] STEP 5.4: Relatório associado ao lead com sucesso.');
 }
 
 
@@ -241,14 +242,14 @@ async function generateReportAsync(leadId: string) {
   let success = false;
   let lastError: Error | null = null;
 
-  console.log(`🚀 generateReportAsync: Iniciando geração para lead: ${leadId} (máximo ${MAX_ATTEMPTS} tentativas)`);
+  console.log(`🚀 [generateReportAsync] Iniciando para lead: ${leadId} (máx ${MAX_ATTEMPTS} tentativas)`);
 
   try {
-    console.log('🔑 Verificando token Sanity:', !!process.env.SANITY_API_TOKEN ? 'Disponível' : 'Não disponível');
-    console.log('🔑 Verificando token Google AI:', !!process.env.GOOGLE_AI_API_KEY ? 'Disponível' : 'Não disponível');
+    console.log(`[generateReportAsync] Verificando tokens... Sanity: ${!!process.env.SANITY_API_TOKEN}, Google AI: ${!!process.env.GOOGLE_AI_API_KEY}`);
 
     // Set initial status
     await updateReportStatus(leadId, 'processing', 'Iniciando a geração do relatório...');
+    console.log(`[generateReportAsync] Status inicial definido para 'processing'.`);
 
     // 1. Fetch Lead (includes check for existing report)
     // If fetchLeadForReport returns null, it means report exists or lead not found,
@@ -264,8 +265,9 @@ async function generateReportAsync(leadId: string) {
     // 3. Generation Loop with Retries
     while (attempt < MAX_ATTEMPTS && !success) {
       attempt++;
+      console.log(`[generateReportAsync] Iniciando tentativa ${attempt}/${MAX_ATTEMPTS}...`);
       try {
-        await updateReportStatus(leadId, 'processing', `Gerando conteúdo (tentativa ${attempt}/${MAX_ATTEMPTS})...`, 1); // Increment attempt count in status
+        await updateReportStatus(leadId, 'processing', `Gerando conteúdo (tentativa ${attempt}/${MAX_ATTEMPTS})...`, 1); 
 
         // 3.1 Generate AI Content
         const aiContent = await generateAIContent(lead, services);
@@ -278,11 +280,11 @@ async function generateReportAsync(leadId: string) {
 
         // 3.4 Final Status Update
         await updateReportStatus(leadId, 'completed', 'Relatório gerado com sucesso');
-        console.log(`✅ Relatório gerado e associado com sucesso para o lead ${leadId}`);
+        console.log(`✅ [generateReportAsync] SUCESSO na tentativa ${attempt} para lead ${leadId}`);
         success = true; // Mark as success to exit loop
 
       } catch (error) {
-        console.error(`❌ Erro na tentativa ${attempt}/${MAX_ATTEMPTS}:`, error);
+        console.error(`❌ [generateReportAsync] Erro na tentativa ${attempt}/${MAX_ATTEMPTS}:`, error);
         lastError = error instanceof Error ? error : new Error(String(error));
 
         // Wait before next attempt (exponential backoff)
@@ -297,17 +299,18 @@ async function generateReportAsync(leadId: string) {
     // 4. Handle Final Failure (if loop finished without success)
     if (!success) {
       const errorMessage = `Falha ao gerar relatório após ${MAX_ATTEMPTS} tentativas. Último erro: ${lastError?.message.substring(0, 150)}`;
-      console.error(`❌ ${errorMessage}`);
+      console.error(`❌ [generateReportAsync] FALHA FINAL para lead ${leadId}: ${errorMessage}`);
       await updateReportStatus(
         leadId,
         'failed',
         errorMessage
       );
       // TODO: Implementar notificação para equipe sobre falha na geração
+      console.log(`[generateReportAsync] Notificação TODO: Falha ao gerar relatório para ${leadId}`);
     }
 
   } catch (error) { // Catch errors from initial steps (fetchLead, fetchServices) or status updates
-    console.error(`❌ Erro fatal no processo de geração assíncrona para lead ${leadId}:`, error);
+    console.error(`❌ [generateReportAsync] Erro fatal (fora do loop de tentativas) para lead ${leadId}:`, error);
     // Attempt to update status to failed, but don't crash if this also fails
     try {
       await updateReportStatus(
