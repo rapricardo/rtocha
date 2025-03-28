@@ -3,10 +3,14 @@ import Image from 'next/image'
 import { PortableText } from '@portabletext/react'
 import { client } from '@/lib/sanity/client'
 import { getReportBySlug } from '@/lib/sanity/queries'
+// @ts-ignore - Temporarily ignore type resolution issue for groq
+import { groq } from 'next-sanity'; 
 import { Button } from '@/components/Button'
 import { SectionTitle } from '@/components/SectionTitle'
-import { PortableTextBlock } from '@/lib/types'
+import { PortableTextBlock, SanityReference } from '@/lib/types' // Added SanityReference
 import { portableTextComponents } from '@/lib/portable-text/components'
+import { AnalyticsTracker } from '@/components/AnalyticsTracker' // Import AnalyticsTracker
+import ReportCTAButton from '@/components/reports/ReportCTAButton'; // Import the new client component
 
 // Defina os tipos necessários
 type RecommendedService = {
@@ -32,6 +36,7 @@ type Report = {
   createdAt: string
   views: number
   lead: {
+    _ref: string // Need the lead ID reference
     name: string
     companyName: string
   }
@@ -67,6 +72,7 @@ const simulatedReport = {
   createdAt: new Date().toISOString(),
   views: 1,
   lead: {
+    _ref: 'simulated-lead-ref', // Add dummy _ref
     name: 'Usuário',
     companyName: 'Sua Empresa'
   },
@@ -154,27 +160,33 @@ export default async function ReportPage({ params }: { params: Promise<{ slug: s
   const resolvedParams = await params;
   console.log("Buscando relatório com slug:", resolvedParams.slug);
   
-  let report: Report | null = null;
+  // Adjust type hint for fetched data
+  let report: (Report & { leadId?: string }) | null = null; 
   let isSimulated = false;
   
   try {
-    report = await client.fetch<Report | null>(getReportBySlug, { slug: resolvedParams.slug })
+    // Modify the query to fetch lead._ref as leadId
+    const reportQuery = groq`*[_type == "report" && slug.current == $slug][0]{
+      ...,
+      "leadId": lead._ref, // Fetch lead reference ID
+      lead->{name, companyName} // Keep fetching lead details if needed elsewhere
+    }`;
+    report = await client.fetch<Report & { leadId?: string } | null>(reportQuery, { slug: resolvedParams.slug });
     
-    // Se encontrou o relatório, registrar visualização
+    // Se encontrou o relatório, registrar visualização (using mutation now)
     if (report) {
       console.log("Relatório encontrado:", report.reportTitle);
-      
-      try {
-        await client
-          .patch(report._id)
-          .set({ 
-            views: (report.views || 0) + 1,
-            lastViewedAt: new Date().toISOString()
-          })
-          .commit()
-      } catch (err) {
-        console.error('Erro ao atualizar visualizações:', err)
-      }
+      // The view registration is now handled by AnalyticsTracker or a separate mechanism
+      // Remove the direct patch here to avoid duplicate view counts if AnalyticsTracker is used
+      // try {
+      //   await client
+      //     .patch(report._id)
+      //     .inc({ views: 1 }) // Use inc for atomic increment
+      //     .set({ lastViewedAt: new Date().toISOString() })
+      //     .commit({ visibility: 'async' })
+      // } catch (err) {
+      //   console.error('Erro ao registrar visualização via patch:', err)
+      // }
     }
   } catch (error) {
     console.error("Erro ao buscar relatório:", error);
@@ -189,6 +201,11 @@ export default async function ReportPage({ params }: { params: Promise<{ slug: s
 
   return (
     <>
+      {/* Add Analytics Tracker - Pass correct leadId */}
+      {!isSimulated && report?._id && (
+        <AnalyticsTracker reportId={report._id} leadId={report.leadId} />
+      )}
+
       {/* Ajustado pt-32 para pt-12 para compensar o pt-20 do layout global */}
       <div className="pt-12 pb-20"> 
         <div className="container mx-auto px-4">
@@ -216,10 +233,10 @@ export default async function ReportPage({ params }: { params: Promise<{ slug: s
               Mini-Auditoria Personalizada
             </span>
             <h1 className="text-3xl md:text-4xl font-bold mb-6">
-              {report.reportTitle}
+              {report?.reportTitle} {/* Add null check */}
             </h1>
             <p className="text-lg text-gray-600 max-w-3xl mx-auto">
-              Preparado exclusivamente para {report.lead.name} da {report.lead.companyName}
+              Preparado exclusivamente para {report?.lead.name} da {report?.lead.companyName} {/* Add null checks */}
             </p>
           </div>
 
@@ -230,7 +247,7 @@ export default async function ReportPage({ params }: { params: Promise<{ slug: s
               subtitle="Análise inicial baseada nas informações compartilhadas"
             />
             <p className="text-lg text-gray-700 mt-4">
-              {report.summary}
+              {report?.summary} {/* Add null check */}
             </p>
           </div>
 
@@ -241,7 +258,8 @@ export default async function ReportPage({ params }: { params: Promise<{ slug: s
               subtitle="Entendendo seu cenário atual e oportunidades"
             />
             <div className="prose max-w-none mt-6 text-gray-700">
-              <PortableText value={report.contextAnalysis} components={portableTextComponents} />
+              {/* Add null check for PortableText value */}
+              {report?.contextAnalysis && <PortableText value={report.contextAnalysis} components={portableTextComponents} />}
             </div>
           </div>
 
@@ -253,7 +271,8 @@ export default async function ReportPage({ params }: { params: Promise<{ slug: s
             />
 
             <div className="space-y-8 mt-8">
-              {report.recommendedServices.map(rec => {
+              {/* Add null check before mapping */}
+              {report?.recommendedServices?.map(rec => { 
                 const priorityColors: Record<number, string> = {
                   1: "border-red-500 bg-red-50",
                   2: "border-orange-500 bg-orange-50",
@@ -325,14 +344,21 @@ export default async function ReportPage({ params }: { params: Promise<{ slug: s
               Agende uma sessão estratégica gratuita de 30 minutos para discutir como 
               implementar estas recomendações na prática para seu negócio.
             </p>
-            <Button 
-              variant="accent" 
-              size="lg"
-              href="https://calendly.com/ricardotocha/sessao-estrategica"
-              target="_blank"
-            >
-              Agendar Sessão Estratégica
-            </Button>
+            {/* Use the new client component for the CTA button */}
+            {!isSimulated && report?._id && (
+              <ReportCTAButton reportId={report._id} leadId={report.leadId} />
+            )}
+            {/* Optional: Show a non-tracking button for simulated reports if needed */}
+            {isSimulated && (
+               <Button 
+                variant="accent" 
+                size="lg"
+                href="https://calendly.com/ricardotocha/sessao-estrategica"
+                target="_blank"
+              >
+                Agendar Sessão Estratégica (Simulado)
+              </Button>
+            )}
           </div>
         </div>
       </div>

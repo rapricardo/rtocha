@@ -294,15 +294,15 @@ Principais schemas:
 
 ## 9. Plano de Implementação
 
-### 9.1 Curto Prazo (Próximas 2 Semanas)
+### 9.1 Curto Prazo 
 1. ✅ Implementar visualização de fluxos no componente `ServiceHowItWorks`
-2. Completar dados no Sanity com conteúdo formatado
-3. Adicionar dados estruturados para todos os serviços no campo `howItWorksSteps`
+2. ✅ Completar dados no Sanity com conteúdo formatado
+3. ✅ Adicionar dados estruturados para todos os serviços no campo `howItWorksSteps`
 4. Implementar rastreamento básico de interações
-5. Configurar webhook Sanity -> n8n para processamento assíncrono
+5. ✅ Configurar webhook Sanity -> n8n para processamento assíncrono
 
-### 9.2 Médio Prazo (1-2 Meses)
-1. Integrar com Replicate para geração de imagens personalizadas
+### 9.2 Médio Prazo 
+1. ✅ Integrar com Replicate para geração de imagens personalizadas
 2. Desenvolver calculadoras de ROI específicas por serviço
 3. Implementar seção de depoimentos de clientes
 4. Configurar webhooks para redes sociais

@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { QuizPreview } from '@/lib/types';
 import { storeLeadId } from '@/lib/hooks/useReturningLead';
+import { track } from '@vercel/analytics'; // Import track function
 
 interface QuizCompleteProps {
   preview: QuizPreview | null;
@@ -176,6 +177,12 @@ export default function QuizComplete({
     setPollingAttempts(0); // Resetar tentativas
     
     try {
+      // Track the request event before making the API call
+      track('Report Requested', {
+        leadId: preview.leadId,
+        email: preview.email
+      });
+
       // Chamar a API /request-report (que agora não retorna requestId)
       const response = await fetch('/api/audit-quiz/request-report', {
         method: 'POST',

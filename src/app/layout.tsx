@@ -4,6 +4,7 @@ import { Convergence } from "next/font/google";
 import "./globals.css";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
+import { Analytics } from "@vercel/analytics/react" // Import Vercel Analytics
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -81,6 +82,7 @@ export default function RootLayout({
           {children}
         </main>
         <Footer />
+        <Analytics /> {/* Add Vercel Analytics component */}
       </body>
     </html>
   );

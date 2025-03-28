@@ -6,9 +6,23 @@ import QuizQuestion from './QuizQuestion';
 import QuizComplete from './QuizComplete';
 import { QuizPreview, QuizAnswerValue } from '@/lib/types';
 import { storeLeadId } from '@/lib/hooks/useReturningLead';
+import { track } from '@vercel/analytics'; // Import track function
 
-// Definição das perguntas do quiz
-const questions = [
+// Define a more specific type for questions
+type QuestionOption = { value: string; label: string };
+type QuestionType = "text" | "email" | "select";
+
+interface Question {
+  id: string;
+  type: QuestionType;
+  question: string;
+  placeholder?: string;
+  required: boolean;
+  options?: QuestionOption[];
+}
+
+// Definição das perguntas do quiz using the specific type
+const questions: Question[] = [
   {
     id: 'name',
     type: 'text',
@@ -218,8 +232,16 @@ export default function AuditQuiz() {
       
       // Armazenar leadId no localStorage imediatamente após a criação do lead
       if (data.preview?.leadId) {
-        console.log('[DEBUG] Armazenando leadId no localStorage:', data.preview.leadId);
-        storeLeadId(data.preview.leadId);
+        const leadId = data.preview.leadId;
+        console.log('[DEBUG] Armazenando leadId no localStorage:', leadId);
+        storeLeadId(leadId);
+
+        // Track successful quiz submission
+        track('Quiz Submitted', {
+          leadId: leadId,
+          companyName: answers.companyName as string || 'N/A', // Add relevant properties
+          mainChallenge: answers.mainChallenge as string || 'N/A'
+        });
         
         // Redirecionar para a página de agradecimento com o leadId
         window.location.href = `/obrigado/${data.preview.leadId}`;
