@@ -1,24 +1,26 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { client } from '@/lib/sanity/client';
-import { groq } from 'next-sanity';
+// import { client } from '@/lib/sanity/client'; // No longer needed for direct query
+// import { groq } from 'next-sanity'; // No longer needed for direct query
 
 interface ReportStatusProps {
   leadId: string;
 }
 
 interface ReportStatus {
+  // Simplified status - API returns necessary info
   status: 'queued' | 'processing' | 'completed' | 'partial' | 'failed';
   message: string;
-  updatedAt: string;
-  attempts: number;
+  // updatedAt?: string; // Not strictly needed in component state
+  // attempts?: number; // Not strictly needed in component state
 }
 
 export default function ReportStatusIndicator({ leadId }: ReportStatusProps) {
-  const [status, setStatus] = useState<ReportStatus | null>(null);
-  const [reportId, setReportId] = useState<string | null>(null);
-  const [reportSlug, setReportSlug] = useState<string | null>(null);
+  // Use a single state for status/message from API
+  const [apiStatus, setApiStatus] = useState<{ status: string; message: string } | null>(null);
+  // const [reportId, setReportId] = useState<string | null>(null); // Use reportSlug only
+  const [reportSlug, setReportSlug] = useState<string | null>(null); // Store slug/id when completed
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [pollingCount, setPollingCount] = useState(0);
@@ -32,168 +34,110 @@ export default function ReportStatusIndicator({ leadId }: ReportStatusProps) {
     console.log('🔍 ReportStatusIndicator: Iniciando monitoramento para leadId:', leadId);
     
     // Função para buscar o status atual
-    const fetchStatus = async () => {
+    const fetchStatus = async (): Promise<boolean> => { // Return true to stop polling
+      // Ensure component is still active and leadId is present
+      if (!isActive || !leadId) return true; // Stop if inactive or no leadId
+
+      const currentCount = pollingCount + 1;
+      setPollingCount(currentCount); // Update count state
+
+      console.log(`🔍 [Polling #${currentCount}/${MAX_POLLING}] Verificando status para leadId: ${leadId}`);
+
+      // Check polling limit
+      if (currentCount >= MAX_POLLING) {
+        console.log(`⚠️ Atingido limite máximo de ${MAX_POLLING} verificações. Parando polling.`);
+        setError(`Tempo limite excedido (${MAX_POLLING * 5}s) para verificação do relatório. Por favor, recarregue a página ou contate o suporte.`);
+        return true; // Stop polling
+      }
+
       try {
-        if (!leadId) return false;
-        
-        // Incrementar contador de polling
-        const currentCount = pollingCount + 1;
-        setPollingCount(currentCount);
-        
-        console.log(`🔍 [Verificação #${currentCount}/${MAX_POLLING}] Buscando status para leadId:`, leadId);
-        
-        // Se atingiu o número máximo de tentativas, parar o polling
-        if (currentCount >= MAX_POLLING) {
-          console.log(`⚠️ Atingido limite máximo de ${MAX_POLLING} verificações. Parando polling.`);
-          setError(`Tempo limite excedido para verificação do relatório. Por favor, recarregue a página.`);
-          return true; // Sinal para parar o polling
-        }
-        
-        // *** Verificação direta via leadId usando o novo parâmetro ***
+        // Call the refactored API endpoint
         const statusUrl = `/api/audit-quiz/report-status?leadId=${encodeURIComponent(leadId)}`;
-        console.log(`🔍 [Verificação #${currentCount}] URL:`, statusUrl);
-        
         const response = await fetch(statusUrl);
-        
-        console.log(`🔍 [Verificação #${currentCount}] Status da resposta:`, response.status);
-        
+        const data = await response.json(); // Assume API always returns JSON, even on error
+
+        console.log(`🔍 [Polling #${currentCount}] Resposta API (${response.status}):`, data);
+
         if (!response.ok) {
-          throw new Error(`Falha ao verificar status: ${response.status}`);
+          throw new Error(data.error || `Falha ao verificar status: ${response.status}`);
         }
-        
-        const data = await response.json();
-        console.log(`🔍 [Verificação #${currentCount}] Dados:`, data);
-        
-        if (data.reportUrl) {
-          setReportId(data.reportId || 'report-found');
-          setReportSlug(data.reportUrl.split('/').pop() || 'report');
-          return true; // Relatório pronto, parar polling
-        }
-        
-        // Se não encontrou relatório e estamos na terceira verificação, tentar iniciar geração
-        if (currentCount === 3 && data.status === 'processing') {
-          console.log(`🔍 [Verificação #${currentCount}] Nenhum relatório encontrado após 3 tentativas, iniciando geração...`);
-          startReportGeneration();
-        }
-        
-        // Verificar se foi feita a consulta no Sanity, se não, tentar buscar também
-        const result = await client.fetch(groq`
-          *[_type == "lead" && _id == $leadId][0]{
-            reportStatus,
-            report->{
-              _id,
-              "slug": slug.current,
-              reportId
-            }
-          }
-        `, { leadId });
-        
-        if (!isActive) return false;
-        
-        if (result) {
-          setStatus(result.reportStatus || null);
-          setReportId(result.report?._id || null);
-          setReportSlug(result.report?.slug || result.report?.reportId || null);
-          
-          console.log(`🔍 [#${currentCount}] Status:`, result.reportStatus?.status || 'não definido');
-          console.log(`🔍 [#${currentCount}] ID do relatório:`, result.report?._id || 'não disponível');
-          console.log(`🔍 [#${currentCount}] Slug do relatório:`, result.report?.slug || result.report?.reportId || 'não disponível');
-          
-          // Se o relatório está completo ou se já existe um ID de relatório,
-          // não precisamos mais verificar
-          const isCompleted = 
-            result.reportStatus?.status === 'completed' || 
-            result.reportStatus?.status === 'partial' ||
-            !!result.report?._id;
-            
-          if (isCompleted) {
-            // Parar o polling se o relatório está pronto
-            console.log('✅ Relatório completo ou disponível, parando polling');
-            return true;
-          }
-          
-          // Verificar se o status é "failed"
-          if (result.reportStatus?.status === 'failed') {
-            console.log('❌ Geração do relatório falhou, parando polling');
-            return true;
-          }
-        } else {
-          console.log(`🔍 [#${currentCount}] Nenhum resultado encontrado para o leadId:`, leadId);
-        }
-        return false;
-      } catch (error) {
-        if (!isActive) return false;
-        
-        console.error('❌ Erro ao buscar status do relatório:', error);
-        setError('Erro ao verificar o status do relatório');
-        return false;
-      } finally {
+
+        // Update component state based on API response
         if (isActive) {
-          setIsLoading(false);
+          setApiStatus({ status: data.status, message: data.message });
+          if (data.reportUrl) {
+            const slugOrId = data.reportUrl.split('/').pop();
+            setReportSlug(slugOrId); // Store slug/id when report is ready
+          }
+          if (data.error) {
+             setError(data.error); // Set error state if API indicates failure
+          }
         }
-      }
-    };
-    
-    // Iniciar a geração do relatório imediatamente
-    const startReportGeneration = async () => {
-      try {
-        console.log('🔍 Iniciando a geração do relatório para leadId:', leadId);
-        
-        const response = await fetch('/api/audit-quiz/generate-report', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ leadId }),
-        });
-        
-        if (!response.ok) {
-          throw new Error(`Erro ao iniciar geração: ${response.statusText}`);
+
+        // Determine if polling should stop
+        const shouldStop = data.status === 'completed' || data.status === 'failed';
+        if (shouldStop) {
+          console.log(`🛑 Status ${data.status} recebido. Parando polling.`);
         }
-        
-        const data = await response.json();
-        console.log('✅ Geração iniciada/concluída:', data);
-        
-        // Se já temos o ID do relatório, atualizar estado
-        if (data.reportId) {
-          setReportId(data.reportId);
-          setReportSlug(data.reportSlug || data.reportId);
-        }
+        return shouldStop;
+
       } catch (error) {
-        console.error('❌ Erro ao iniciar geração:', error);
-        setError(`Falha ao iniciar geração do relatório: ${error instanceof Error ? error.message : String(error)}`);
+        if (!isActive) return false;
+        
+        if (!isActive) return true; // Stop if component unmounted during fetch
+        console.error('❌ Erro durante fetchStatus:', error);
+        setError(`Erro ao verificar status: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
+        return true; // Stop polling on error
+      } finally {
+        if (isActive) setIsLoading(false); // Set loading to false after first attempt completes
       }
     };
-    
-    // Primeira verificação imediata
+
+    // Remover startReportGeneration - Geração é iniciada pelo /submit
+    // const startReportGeneration = async () => { ... };
+
+    // --- Polling Logic ---
+    let isPollingStopped = false;
+
+    // Initial check
     fetchStatus().then(shouldStop => {
-      if (shouldStop) {
-        console.log('🛑 Interrompendo polling após primeira verificação');
+      isPollingStopped = shouldStop;
+      if (isPollingStopped) {
+        console.log('🛑 Polling interrompido após verificação inicial.');
         return;
       }
-      
-      // Se não encontramos um relatório existente, iniciar a geração
-      if (!reportId) {
-        startReportGeneration()
-          .catch(error => console.error('Erro ao iniciar geração após verificação:', error));
-      }
-      
-      // Configurar verificação periódica a cada 5 segundos
+
+      // Setup interval only if not stopped initially
+      console.log('⏱️ Configurando intervalo de polling (5s)');
       intervalId = setInterval(async () => {
+        if (!isActive || isPollingStopped) { // Check flags again inside interval
+          if (intervalId) clearInterval(intervalId);
+          return;
+        }
         try {
           const shouldStop = await fetchStatus();
-          if (shouldStop && isActive && intervalId) {
-            console.log('🛑 Interrompendo polling durante intervalo');
-            clearInterval(intervalId);
-            intervalId = null;
+          if (shouldStop) {
+            isPollingStopped = true;
+            if (intervalId) {
+              console.log('🛑 Interrompendo polling via intervalo.');
+              clearInterval(intervalId);
+              intervalId = null;
+            }
           }
         } catch (error) {
-          console.error('❌ Erro durante verificação periódica:', error);
+          console.error('❌ Erro durante verificação periódica no intervalo:', error);
+          isPollingStopped = true; // Stop polling on error within interval too
+          if (intervalId) clearInterval(intervalId);
         }
-      }, 5000);
+      }, 5000); // Poll every 5 seconds
+    }).catch(error => {
+        // Catch potential errors from the initial fetchStatus call itself
+        console.error('❌ Erro na verificação inicial de status:', error);
+        if (isActive) setError(`Erro inicial: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
+        setIsLoading(false);
     });
-    
-    // Limpeza ao desmontar o componente
+
+    // Cleanup function
     return () => {
       console.log('🧹 Limpando efeito ReportStatusIndicator');
       isActive = false;
@@ -230,9 +174,11 @@ export default function ReportStatusIndicator({ leadId }: ReportStatusProps) {
       </div>
     );
   }
-  
-  // Relatório completo (com ID de relatório disponível)
-  if (reportId) {
+
+  // --- Render based on apiStatus ---
+
+  // Relatório completo (reportSlug is set)
+  if (reportSlug) {
     return (
       <div className="mt-4 p-5 bg-green-50 border border-green-200 rounded-md">
         <div className="flex items-center mb-3">
@@ -242,10 +188,10 @@ export default function ReportStatusIndicator({ leadId }: ReportStatusProps) {
           <h3 className="text-lg font-medium text-green-800">Relatório Pronto!</h3>
         </div>
         <p className="text-green-700 mb-4">
-          {status?.message || 'Seu relatório personalizado está pronto para visualização.'}
+          {apiStatus?.message || 'Seu relatório personalizado está pronto para visualização.'}
         </p>
-        <a 
-          href={`/relatorios/${reportSlug || reportId}`}
+        <a
+          href={`/relatorios/${reportSlug}`} // Use only reportSlug
           className="inline-block px-5 py-2 bg-blue-600 text-white font-medium rounded-md hover:bg-blue-700 transition-colors"
         >
           Ver Relatório Completo
@@ -253,45 +199,31 @@ export default function ReportStatusIndicator({ leadId }: ReportStatusProps) {
       </div>
     );
   }
-  
-  // Status baseado no estado atual
-  if (status) {
-    switch (status.status) {
+
+  // Status based on apiStatus
+  if (apiStatus) {
+    switch (apiStatus.status) {
       case 'queued':
+      case 'processing': // Combine queued and processing visually
         return (
           <div className="mt-4 p-5 bg-blue-50 border border-blue-200 rounded-md">
             <div className="flex items-center mb-3">
               <svg className="h-6 w-6 text-blue-500 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              <h3 className="text-lg font-medium text-blue-800">Relatório em Fila</h3>
-            </div>
-            <p className="text-blue-700 mb-2">{status.message}</p>
-            <p className="text-sm text-blue-600">
-              Seu relatório está na fila para processamento. Isso pode levar alguns minutos.
-              Esta página será atualizada automaticamente.
-            </p>
-          </div>
-        );
-        
-      case 'processing':
-        return (
-          <div className="mt-4 p-5 bg-blue-50 border border-blue-200 rounded-md">
-            <div className="flex items-center mb-3">
               <div className="animate-spin h-5 w-5 mr-3 border-t-2 border-b-2 border-blue-600 rounded-full"></div>
-              <h3 className="text-lg font-medium text-blue-800">Processando</h3>
+              <h3 className="text-lg font-medium text-blue-800">Processando Relatório</h3>
             </div>
-            <p className="text-blue-700 mb-2">{status.message}</p>
+            <p className="text-blue-700 mb-2">{apiStatus.message}</p>
             <p className="text-sm text-blue-600">
-              Seu relatório está sendo gerado. Isso pode levar alguns minutos.
-              Não precisa atualizar a página, ela será atualizada automaticamente.
+              Isso pode levar alguns minutos.
+              Esta página será atualizada automaticamente quando estiver pronto.
             </p>
-            <div className="mt-3 h-2 bg-blue-200 rounded-full overflow-hidden">
-              <div className="h-full bg-blue-500 animate-pulse"></div>
-            </div>
+            {/* Optional: Add progress bar back if desired */}
+            {/* <div className="mt-3 h-2 bg-blue-200 rounded-full overflow-hidden">...</div> */}
           </div>
         );
-        
+
       case 'failed':
         return (
           <div className="mt-4 p-5 bg-red-50 border border-red-200 rounded-md">
@@ -301,42 +233,16 @@ export default function ReportStatusIndicator({ leadId }: ReportStatusProps) {
               </svg>
               <h3 className="text-lg font-medium text-red-800">Falha na Geração</h3>
             </div>
-            <p className="text-red-700 mb-2">{status.message}</p>
+            <p className="text-red-700 mb-2">{apiStatus.message}</p>
             <p className="text-sm text-red-600 mb-4">
-              Ocorreu um problema ao gerar o relatório. Nossa equipe foi notificada e entrará em contato em breve.
+              Ocorreu um problema ao gerar seu relatório. Por favor, tente recarregar a página ou contate o suporte se o problema persistir.
             </p>
-            <button 
-              onClick={() => {
-                setIsLoading(true);
-                fetch('/api/reports/generate', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ leadId }),
-                })
-                .then(res => res.json())
-                .then(() => {
-                  setStatus({
-                    ...status,
-                    status: 'processing',
-                    message: 'Reiniciando a geração do relatório...'
-                  });
-                })
-                .catch(err => {
-                  console.error('Erro ao reiniciar geração:', err);
-                  setError('Não foi possível reiniciar a geração');
-                })
-                .finally(() => {
-                  setIsLoading(false);
-                });
-              }}
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-            >
-              Tentar Novamente
-            </button>
+            {/* Remove retry button for now, as direct generation call is complex */}
+            {/* <button onClick={...}>Tentar Novamente</button> */}
           </div>
         );
-        
-      case 'partial':
+
+      case 'partial': // Assuming 'partial' might still be a possible status from Sanity
         return (
           <div className="mt-4 p-5 bg-yellow-50 border border-yellow-200 rounded-md">
             <div className="flex items-center mb-3">
@@ -345,14 +251,13 @@ export default function ReportStatusIndicator({ leadId }: ReportStatusProps) {
               </svg>
               <h3 className="text-lg font-medium text-yellow-800">Relatório Parcial Disponível</h3>
             </div>
-            <p className="text-yellow-700 mb-2">{status.message}</p>
+            <p className="text-yellow-700 mb-2">{apiStatus.message}</p>
             <p className="text-sm text-yellow-600 mb-4">
-              Um relatório parcial está disponível. Nem todas as informações detalhadas puderam ser
-              processadas, mas você já pode acessar o conteúdo básico.
+              Um relatório parcial está disponível. Você já pode acessar o conteúdo básico.
             </p>
-            {reportId && (
-              <a 
-                href={`/relatorios/${reportSlug || reportId}`}
+            {reportSlug && ( // Check reportSlug here
+              <a
+                href={`/relatorios/${reportSlug}`}
                 className="inline-block px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
               >
                 Ver Relatório Parcial
@@ -364,8 +269,8 @@ export default function ReportStatusIndicator({ leadId }: ReportStatusProps) {
       default:
         return (
           <div className="mt-4 p-4 bg-gray-100 rounded-md">
-            <p>Status: {status.status}</p>
-            <p>{status.message}</p>
+            <p>Status desconhecido: {apiStatus.status}</p>
+            <p>{apiStatus.message}</p>
           </div>
         );
     }
@@ -383,4 +288,4 @@ export default function ReportStatusIndicator({ leadId }: ReportStatusProps) {
       </button>
     </div>
   );
-} 
+}
